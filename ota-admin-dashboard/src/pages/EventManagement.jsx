@@ -27,22 +27,35 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// 성공 메시지 컴포넌트
-const SuccessMessage = ({ message, onClose }) => (
-  <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+// 메시지 컴포넌트
+const Message = ({ message, type = 'success', onClose }) => (
+  <div className={`border rounded-md p-4 mb-4 ${
+    type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+  }`}>
     <div className="flex justify-between items-center">
       <div className="flex">
-        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+        <svg className={`h-5 w-5 ${type === 'success' ? 'text-green-400' : 'text-red-400'}`} viewBox="0 0 20 20" fill="currentColor">
+          {type === 'success' ? (
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          ) : (
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          )}
         </svg>
-        <p className="text-sm font-medium text-green-800 ml-3">{message}</p>
+        <p className={`text-sm font-medium ml-3 ${type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+          {message}
+        </p>
       </div>
-      <button onClick={onClose} className="text-green-400 hover:text-green-600">×</button>
+      <button 
+        onClick={onClose} 
+        className={`${type === 'success' ? 'text-green-400 hover:text-green-600' : 'text-red-400 hover:text-red-600'}`}
+      >
+        ×
+      </button>
     </div>
   </div>
 );
 
-// 행사 상태 배지 컴포넌트
+// 행사 상태 배지
 const StatusBadge = ({ status }) => {
   const statusConfig = {
     active: { label: '모집중', class: 'bg-green-100 text-green-800' },
@@ -60,62 +73,75 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// 업셀링 수익 계산기 컴포넌트
-const UpsellCalculator = ({ basePrice, upsellRates, isEnabled, className = "" }) => {
+// 💰 업셀링 수익 계산기
+const UpsellRevenueCalculator = ({ basePrice, upsellRates, isEnabled }) => {
   if (!isEnabled || !basePrice) return null;
 
-  const exampleUpsellAmount = basePrice * 0.2; // 예시: 기본 가격의 20% 업셀
-  
-  const calculations = {
-    guide: (exampleUpsellAmount * (upsellRates.guide || 0) / 100),
-    company: (exampleUpsellAmount * (upsellRates.company || 0) / 100),
-    ota: (exampleUpsellAmount * (upsellRates.ota || 0) / 100)
-  };
-
-  const totalCommission = calculations.guide + calculations.company + calculations.ota;
-  const totalRate = (upsellRates.guide || 0) + (upsellRates.company || 0) + (upsellRates.ota || 0);
+  // 업셀링 시나리오들 (기본가의 10%, 20%, 30% 추가)
+  const scenarios = [
+    { name: '10% 업셀', rate: 0.1, color: 'text-blue-600' },
+    { name: '20% 업셀', rate: 0.2, color: 'text-green-600' },
+    { name: '30% 업셀', rate: 0.3, color: 'text-purple-600' }
+  ];
 
   return (
-    <div className={`bg-green-50 border border-green-200 rounded-lg p-4 ${className}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <Calculator className="w-4 h-4 text-green-600" />
-        <span className="text-sm font-medium text-green-800">업셀링 수익 예시 (기본가 20% 업셀 시)</span>
+    <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6 mt-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Calculator className="w-5 h-5 text-green-600" />
+        <span className="text-lg font-semibold text-gray-800">💰 업셀링 수익 미리보기</span>
       </div>
       
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-600">업셀 금액:</span>
-            <span className="font-medium">₩{exampleUpsellAmount.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-blue-600">
-            <span>가이드 커미션:</span>
-            <span className="font-medium">₩{calculations.guide.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-purple-600">
-            <span>회사 수익:</span>
-            <span className="font-medium">₩{calculations.company.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-orange-600">
-            <span>OTA 커미션:</span>
-            <span className="font-medium">₩{calculations.ota.toLocaleString()}</span>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex justify-between font-medium border-t pt-2">
-            <span>총 커미션:</span>
-            <span>₩{totalCommission.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>총 비율:</span>
-            <span className={totalRate > 100 ? 'text-red-500 font-medium' : ''}>{totalRate.toFixed(1)}%</span>
-          </div>
-          {totalRate > 100 && (
-            <div className="text-xs text-red-500 mt-1">
-              ⚠️ 총 비율이 100%를 초과합니다
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {scenarios.map((scenario) => {
+          const upsellAmount = basePrice * scenario.rate;
+          const totalPrice = basePrice + upsellAmount;
+          
+          // 업셀링 금액에서 커미션 계산
+          const guideCommission = upsellAmount * (upsellRates.guide || 0) / 100;
+          const companyRevenue = upsellAmount * (upsellRates.company || 0) / 100;
+          const otaCommission = upsellAmount * (upsellRates.ota || 0) / 100;
+          const totalCommission = guideCommission + companyRevenue + otaCommission;
+          
+          return (
+            <div key={scenario.name} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+              <div className="text-center mb-3">
+                <div className={`text-lg font-bold ${scenario.color}`}>
+                  {scenario.name}
+                </div>
+                <div className="text-sm text-gray-600">
+                  총 판매가: ₩{totalPrice.toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-500">
+                  (기본 {basePrice.toLocaleString()} + 업셀 {upsellAmount.toLocaleString()})
+                </div>
+              </div>
+              
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-blue-600">가이드 커미션:</span>
+                  <span className="font-medium">₩{guideCommission.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-purple-600">회사 수익:</span>
+                  <span className="font-medium">₩{companyRevenue.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-orange-600">OTA 커미션:</span>
+                  <span className="font-medium">₩{otaCommission.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2 font-bold">
+                  <span>총 커미션:</span>
+                  <span className="text-green-600">₩{totalCommission.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
-          )}
+          );
+        })}
+      </div>
+      
+      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+        <div className="text-sm text-blue-800">
+          💡 <strong>업셀링 로직:</strong> 기본 패키지 가격 + 추가 옵션 금액 = 최종 판매가
         </div>
       </div>
     </div>
@@ -124,6 +150,7 @@ const UpsellCalculator = ({ basePrice, upsellRates, isEnabled, className = "" })
 
 // 행사 폼 컴포넌트
 const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides, landCompanies }) => {
+  // 상태 관리 - upselling_percentage 추가
   const [formData, setFormData] = useState({
     master_product_id: event?.master_product_id || '',
     departure_date: event?.departure_date || '',
@@ -139,11 +166,11 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
     assigned_guide_id: event?.assigned_guide_id || '',
     land_company_id: event?.land_company_id || '',
     event_price: event?.event_price || '',
-    final_price: event?.final_price || '',
     max_capacity: event?.max_capacity || 20,
     status: event?.status || 'active',
     admin_notes: event?.admin_notes || '',
     upselling_enabled: event?.upselling_enabled || false,
+    upselling_percentage: event?.upselling_percentage || 20, // 업셀링 비율 추가
     upselling_guide_rate: event?.upselling_guide_rate || 0,
     upselling_company_rate: event?.upselling_company_rate || 0,
     upselling_ota_rate: event?.upselling_ota_rate || 0
@@ -155,6 +182,18 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
   const [filteredLandCompanies, setFilteredLandCompanies] = useState([]);
   const [selectedMasterProduct, setSelectedMasterProduct] = useState(null);
 
+  // 최종 가격 계산 함수
+  const calculateFinalPrice = (basePrice, upsellPercent, isUpselling) => {
+    if (!basePrice) return 0;
+    
+    const base = parseFloat(basePrice);
+    if (!isUpselling) return base;
+    
+    // 업셀링: 기본 가격 + (기본 가격 × 업셀링 비율)
+    const upsellAmount = base * (parseFloat(upsellPercent) / 100);
+    return base + upsellAmount;
+  };
+
   // 마스터 상품 선택 시 자동 설정
   useEffect(() => {
     if (formData.master_product_id && masterProducts.length > 0) {
@@ -163,7 +202,6 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
         setSelectedMasterProduct(selectedProduct);
         setSelectedCountry(selectedProduct.destination_country);
         
-        // 출발일이 설정되어 있으면 도착일 자동 계산
         if (formData.departure_date) {
           const departureDate = new Date(formData.departure_date);
           const arrivalDate = new Date(departureDate);
@@ -173,14 +211,13 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
             ...prev,
             arrival_date: arrivalDate.toISOString().split('T')[0],
             event_price: selectedProduct.base_price,
-            final_price: selectedProduct.base_price,
             max_capacity: selectedProduct.max_participants || 20,
             departure_airline: selectedProduct.base_airline || '',
             arrival_airline: selectedProduct.base_airline || ''
           }));
         }
 
-        // 새로운 행사 생성 시에만 마스터 상품의 업셀링 설정을 기본값으로 적용
+        // 새 행사 생성 시에만 마스터 상품의 업셀링 설정 적용
         if (!event) {
           setFormData(prev => ({
             ...prev,
@@ -196,16 +233,14 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
     }
   }, [formData.master_product_id, formData.departure_date, masterProducts, event]);
 
-  // 국가 변경 시 가이드와 랜드사 필터링
+  // 국가별 가이드/랜드사 필터링
   useEffect(() => {
     if (selectedCountry) {
-      // 해당 국가의 가이드 필터링
       const countryGuides = guides.filter(guide => 
         guide.land_companies && guide.land_companies.country === selectedCountry
       );
       setFilteredGuides(countryGuides);
 
-      // 해당 국가의 랜드사 필터링
       const countryLandCompanies = landCompanies.filter(company => 
         company.country === selectedCountry
       );
@@ -216,6 +251,7 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
     }
   }, [selectedCountry, guides, landCompanies]);
 
+  // 폼 검증
   const validateForm = () => {
     const newErrors = {};
     
@@ -241,11 +277,6 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
       newErrors.event_price = '올바른 행사 가격을 입력해주세요.';
     }
 
-    if (!formData.final_price || formData.final_price <= 0) {
-      newErrors.final_price = '올바른 최종 가격을 입력해주세요.';
-    }
-
-    // 업셀링 관련 검증
     if (formData.upselling_enabled) {
       const totalRate = parseFloat(formData.upselling_guide_rate || 0) + 
                        parseFloat(formData.upselling_company_rate || 0) + 
@@ -260,19 +291,59 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
     return Object.keys(newErrors).length === 0;
   };
 
+  // 폼 제출
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const basePrice = parseFloat(formData.event_price) || 0;
+    const currentUpsellPercentage = parseFloat(formData.upselling_percentage) || 0;
+    const finalPrice = calculateFinalPrice(
+      basePrice, 
+      currentUpsellPercentage, 
+      formData.upselling_enabled
+    );
+
+    console.log('💰 가격 계산 상세:', {
+      기본가격: basePrice,
+      업셀링비율: currentUpsellPercentage + '%',
+      업셀링활성화: formData.upselling_enabled,
+      업셀링추가금액: formData.upselling_enabled ? (basePrice * currentUpsellPercentage / 100) : 0,
+      계산된최종가격: finalPrice,
+      upselling_percentage상태값: formData.upselling_percentage
+    });
+
     const processedData = {
       ...formData,
-      event_price: parseFloat(formData.event_price),
-      final_price: parseFloat(formData.final_price),
-      max_capacity: parseInt(formData.max_capacity),
-      upselling_guide_rate: parseFloat(formData.upselling_guide_rate),
-      upselling_company_rate: parseFloat(formData.upselling_company_rate),
-      upselling_ota_rate: parseFloat(formData.upselling_ota_rate)
+      event_price: basePrice,
+      final_price: Math.round(finalPrice), // 최종 가격 명시적 설정
+      max_capacity: parseInt(formData.max_capacity) || 20,
+      upselling_percentage: parseFloat(formData.upselling_percentage) || 0, // 업셀링 비율 저장
+      upselling_guide_rate: parseFloat(formData.upselling_guide_rate) || 0,
+      upselling_company_rate: parseFloat(formData.upselling_company_rate) || 0,
+      upselling_ota_rate: parseFloat(formData.upselling_ota_rate) || 0,
+      // null 처리
+      assigned_guide_id: formData.assigned_guide_id || null,
+      land_company_id: formData.land_company_id || null,
+      departure_time: formData.departure_time || null,
+      arrival_time: formData.arrival_time || null,
+      departure_return_time: formData.departure_return_time || null,
+      arrival_return_time: formData.arrival_return_time || null,
+      departure_airline: formData.departure_airline || null,
+      arrival_airline: formData.arrival_airline || null,
+      departure_airport: formData.departure_airport || null,
+      arrival_airport: formData.arrival_airport || null,
+      admin_notes: formData.admin_notes || null
     };
+
+    console.log('📤 전송할 데이터:', processedData);
+    console.log('🔍 전송 데이터 가격 확인:', {
+      event_price: processedData.event_price,
+      final_price: processedData.final_price,
+      upselling_enabled: processedData.upselling_enabled,
+      upselling_percentage: processedData.upselling_percentage,
+      '업셀링비율': currentUpsellPercentage + '%'
+    });
 
     onSave(processedData);
   };
@@ -285,76 +356,47 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
             <h2 className="text-2xl font-bold text-gray-900">
               {event ? '행사 수정' : '새 행사 생성'}
             </h2>
-            <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
-              ✕
-            </button>
+            <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">✕</button>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 기본 정보 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  마스터 상품 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.master_product_id}
-                  onChange={(e) => setFormData({...formData, master_product_id: e.target.value})}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.master_product_id ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">마스터 상품 선택</option>
-                  {masterProducts.map(product => (
-                    <option key={product.id} value={product.id}>
-                      {product.product_name} ({product.product_code}) - {product.destination_country}
-                      {product.upselling_enabled ? ' 🔥 업셀링' : ''}
-                    </option>
-                  ))}
-                </select>
-                {errors.master_product_id && (
-                  <p className="text-red-500 text-xs mt-1">{errors.master_product_id}</p>
-                )}
-                
-                {/* 선택된 마스터 상품 정보 표시 */}
-                {selectedMasterProduct && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div className="text-sm text-blue-800">
-                        <div className="font-medium">{selectedMasterProduct.product_name}</div>
-                        <div>기본가격: ₩{selectedMasterProduct.base_price?.toLocaleString()}</div>
-                        <div>{selectedMasterProduct.duration_days}일 {selectedMasterProduct.duration_nights}박</div>
-                        {selectedMasterProduct.upselling_enabled && (
-                          <div className="mt-1">
-                            <span className="text-green-600 font-medium">업셀링 설정: </span>
-                            가이드 {selectedMasterProduct.guide_commission_rate}%, 
-                            회사 {selectedMasterProduct.company_commission_rate}%, 
-                            OTA {selectedMasterProduct.ota_commission_rate}%
-                          </div>
-                        )}
-                      </div>
-                      {selectedMasterProduct.upselling_enabled && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              upselling_enabled: selectedMasterProduct.upselling_enabled,
-                              upselling_guide_rate: selectedMasterProduct.guide_commission_rate || 0,
-                              upselling_company_rate: selectedMasterProduct.company_commission_rate || 0,
-                              upselling_ota_rate: selectedMasterProduct.ota_commission_rate || 0
-                            }));
-                          }}
-                          className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
-                        >
-                          기본값 적용
-                        </button>
-                      )}
-                    </div>
+            {/* 마스터 상품 선택 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                마스터 상품 <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.master_product_id}
+                onChange={(e) => setFormData({...formData, master_product_id: e.target.value})}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.master_product_id ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="">마스터 상품 선택</option>
+                {masterProducts.map(product => (
+                  <option key={product.id} value={product.id}>
+                    {product.product_name} ({product.product_code}) - {product.destination_country}
+                    {product.upselling_enabled ? ' 🔥' : ''}
+                  </option>
+                ))}
+              </select>
+              {errors.master_product_id && (
+                <p className="text-red-500 text-xs mt-1">{errors.master_product_id}</p>
+              )}
+              
+              {selectedMasterProduct && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-sm text-blue-800">
+                    <div className="font-medium">{selectedMasterProduct.product_name}</div>
+                    <div>기본가격: ₩{selectedMasterProduct.base_price?.toLocaleString()}</div>
+                    <div>{selectedMasterProduct.duration_days}일 {selectedMasterProduct.duration_nights}박</div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
 
+            {/* 날짜 선택 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   출발일 <span className="text-red-500">*</span>
@@ -390,63 +432,10 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
               </div>
             </div>
 
-            {/* 시간 정보 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  출발 시간
-                </label>
-                <input
-                  type="time"
-                  value={formData.departure_time}
-                  onChange={(e) => setFormData({...formData, departure_time: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  도착 시간
-                </label>
-                <input
-                  type="time"
-                  value={formData.arrival_time}
-                  onChange={(e) => setFormData({...formData, arrival_time: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  귀국 출발 시간
-                </label>
-                <input
-                  type="time"
-                  value={formData.departure_return_time}
-                  onChange={(e) => setFormData({...formData, departure_return_time: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  귀국 도착 시간
-                </label>
-                <input
-                  type="time"
-                  value={formData.arrival_return_time}
-                  onChange={(e) => setFormData({...formData, arrival_return_time: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-
             {/* 항공편 정보 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  출발 항공편
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">출발 항공편</label>
                 <input
                   type="text"
                   value={formData.departure_airline}
@@ -455,11 +444,8 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  귀국 항공편
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">귀국 항공편</label>
                 <input
                   type="text"
                   value={formData.arrival_airline}
@@ -468,40 +454,12 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  출발 공항
-                </label>
-                <input
-                  type="text"
-                  value={formData.departure_airport}
-                  onChange={(e) => setFormData({...formData, departure_airport: e.target.value})}
-                  placeholder="예: 인천국제공항"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  도착 공항
-                </label>
-                <input
-                  type="text"
-                  value={formData.arrival_airport}
-                  onChange={(e) => setFormData({...formData, arrival_airport: e.target.value})}
-                  placeholder="예: 나리타국제공항"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
             </div>
 
-            {/* 가이드 및 랜드사 배정 */}
+            {/* 가이드 및 랜드사 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  배정 가이드
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">배정 가이드</label>
                 <select
                   value={formData.assigned_guide_id}
                   onChange={(e) => setFormData({...formData, assigned_guide_id: e.target.value})}
@@ -512,16 +470,12 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
                     <option key={guide.id} value={guide.id}>
                       {guide.name_ko} ({guide.guide_id})
                       {guide.is_star_guide && ' ⭐'}
-                      {guide.land_companies && ` - ${guide.land_companies.company_name}`}
                     </option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  협력 랜드사
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">협력 랜드사</label>
                 <select
                   value={formData.land_company_id}
                   onChange={(e) => setFormData({...formData, land_company_id: e.target.value})}
@@ -537,11 +491,11 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
               </div>
             </div>
 
-            {/* 가격 및 참가자 정보 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 가격 설정 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  행사 가격 (₩) <span className="text-red-500">*</span>
+                  기본 패키지 가격 (₩) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -557,30 +511,8 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
                   <p className="text-red-500 text-xs mt-1">{errors.event_price}</p>
                 )}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  최종 가격 (₩) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1000"
-                  value={formData.final_price}
-                  onChange={(e) => setFormData({...formData, final_price: e.target.value})}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.final_price ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.final_price && (
-                  <p className="text-red-500 text-xs mt-1">{errors.final_price}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  최대 참가자 수
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">최대 참가자 수</label>
                 <input
                   type="number"
                   min="1"
@@ -592,241 +524,154 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
               </div>
             </div>
 
-            {/* 상태 및 메모 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  행사 상태
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="active">모집중</option>
-                  <option value="inactive">비활성</option>
-                  <option value="full">마감</option>
-                  <option value="cancelled">취소</option>
-                </select>
-              </div>
+            {/* 행사 상태 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">행사 상태</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="active">모집중</option>
+                <option value="inactive">비활성</option>
+                <option value="full">마감</option>
+                <option value="cancelled">취소</option>
+              </select>
             </div>
 
-            {/* 업셀링 및 커미션 설정 */}
+            {/* 업셀링 설정 */}
             <div className="border-t pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                  업셀링 및 커미션 설정 (행사별 개별 설정)
-                </h4>
-                
-                {/* 테스트 데이터 자동 생성 버튼 */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      event_price: 890000,
-                      final_price: 850000,
-                      max_capacity: 20,
-                      departure_time: '09:30',
-                      arrival_time: '12:45',
-                      departure_airline: 'KE123',
-                      arrival_airline: 'KE124',
-                      departure_airport: '인천국제공항',
-                      arrival_airport: '나리타국제공항',
-                      upselling_enabled: true,
-                      upselling_guide_rate: 8.0,
-                      upselling_company_rate: 15.0,
-                      upselling_ota_rate: 5.0,
-                      admin_notes: '테스트용 자동 생성 데이터입니다.'
-                    }));
-                  }}
-                  className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 flex items-center gap-1"
-                >
-                  🧪 테스트 데이터 생성
-                </button>
-              </div>
+              <h4 className="text-lg font-medium text-gray-900 flex items-center gap-2 mb-4">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                업셀링 설정
+              </h4>
 
-              {/* 마스터 상품의 업셀링 정보 표시 */}
-              {selectedMasterProduct && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h5 className="font-medium text-blue-900 mb-2">마스터 상품 업셀링 정보</h5>
-                      <div className="text-sm text-blue-800 space-y-1">
-                        <div>상품명: {selectedMasterProduct.product_name}</div>
-                        <div>업셀링 상태: {selectedMasterProduct.upselling_enabled ? 
-                          <span className="text-green-600 font-medium">활성화</span> : 
-                          <span className="text-gray-600">비활성화</span>}
-                        </div>
-                        {selectedMasterProduct.upselling_enabled && (
-                          <div className="grid grid-cols-3 gap-4 mt-2 text-xs">
-                            <div>
-                              <span className="text-gray-600">가이드: </span>
-                              <span className="font-medium">{selectedMasterProduct.guide_commission_rate || 0}%</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">회사: </span>
-                              <span className="font-medium">{selectedMasterProduct.company_commission_rate || 0}%</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">OTA: </span>
-                              <span className="font-medium">{selectedMasterProduct.ota_commission_rate || 0}%</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {selectedMasterProduct.upselling_enabled && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            upselling_enabled: selectedMasterProduct.upselling_enabled,
-                            upselling_guide_rate: selectedMasterProduct.guide_commission_rate || 0,
-                            upselling_company_rate: selectedMasterProduct.company_commission_rate || 0,
-                            upselling_ota_rate: selectedMasterProduct.ota_commission_rate || 0
-                          }));
-                        }}
-                        className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                      >
-                        기본값 적용
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="space-y-4">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    id="event_upselling_enabled"
+                    id="upselling_enabled"
                     checked={formData.upselling_enabled}
                     onChange={(e) => setFormData({...formData, upselling_enabled: e.target.checked})}
                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
                   />
-                  <label htmlFor="event_upselling_enabled" className="ml-2 text-sm font-medium text-gray-700">
-                    이 행사에서 업셀링 활성화
+                  <label htmlFor="upselling_enabled" className="ml-2 text-sm font-medium text-gray-700">
+                    업셀링 활성화 (추가 옵션 판매)
                   </label>
                 </div>
-              </div>
 
-              {formData.upselling_enabled && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {formData.upselling_enabled && (
+                  <div className="space-y-4 p-4 bg-green-50 rounded-lg">
+                    {/* 업셀링 비율 설정 - formData.upselling_percentage 사용 */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        가이드 업셀링 커미션 (%)
+                        업셀링 비율 (%)
                       </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={formData.upselling_guide_rate}
-                        onChange={(e) => setFormData({...formData, upselling_guide_rate: e.target.value})}
+                      <select
+                        value={formData.upselling_percentage}
+                        onChange={(e) => setFormData({...formData, upselling_percentage: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="예: 5.0"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">가이드가 업셀링 시 받을 추가 커미션</p>
+                      >
+                        <option value="10">10% (기본가 + 10%)</option>
+                        <option value="15">15% (기본가 + 15%)</option>
+                        <option value="20">20% (기본가 + 20%)</option>
+                        <option value="25">25% (기본가 + 25%)</option>
+                        <option value="30">30% (기본가 + 30%)</option>
+                      </select>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        회사 업셀링 수익 (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={formData.upselling_company_rate}
-                        onChange={(e) => setFormData({...formData, upselling_company_rate: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="예: 10.0"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">회사가 업셀링으로 얻는 수익률</p>
+                    {/* 커미션 비율 설정 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          가이드 커미션 (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={formData.upselling_guide_rate}
+                          onChange={(e) => setFormData({...formData, upselling_guide_rate: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          회사 수익 (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={formData.upselling_company_rate}
+                          onChange={(e) => setFormData({...formData, upselling_company_rate: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          OTA 커미션 (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={formData.upselling_ota_rate}
+                          onChange={(e) => setFormData({...formData, upselling_ota_rate: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        OTA 업셀링 커미션 (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={formData.upselling_ota_rate}
-                        onChange={(e) => setFormData({...formData, upselling_ota_rate: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="예: 3.0"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">OTA에 지급할 업셀링 커미션</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        총 업셀링 비율 (자동 계산)
-                      </label>
-                      <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed">
-                        <div className={`text-sm font-medium ${
-                          (parseFloat(formData.upselling_guide_rate || 0) + 
-                           parseFloat(formData.upselling_company_rate || 0) + 
-                           parseFloat(formData.upselling_ota_rate || 0)) > 100 
-                           ? 'text-red-600' : 'text-gray-900'
-                        }`}>
-                          {(parseFloat(formData.upselling_guide_rate || 0) + 
-                            parseFloat(formData.upselling_company_rate || 0) + 
-                            parseFloat(formData.upselling_ota_rate || 0)).toFixed(1)}%
+                    {/* 최종 가격 표시 - formData.upselling_percentage 사용 */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="text-sm text-blue-800">
+                        <div className="font-medium mb-2">💰 가격 계산 결과</div>
+                        <div>기본 패키지: ₩{formData.event_price ? parseFloat(formData.event_price).toLocaleString() : '0'}</div>
+                        <div>업셀링 추가: ₩{formData.event_price ? 
+                          (parseFloat(formData.event_price) * parseFloat(formData.upselling_percentage) / 100).toLocaleString() : '0'} 
+                          ({formData.upselling_percentage}%)
+                        </div>
+                        <div className="font-bold text-lg text-blue-900 mt-2">
+                          최종 판매가: ₩{formData.event_price ? 
+                            calculateFinalPrice(
+                              formData.event_price, 
+                              formData.upselling_percentage, 
+                              formData.upselling_enabled
+                            ).toLocaleString() : '0'}
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">전체 커미션 비율 (자동 계산, 100% 이하 권장)</p>
                     </div>
-                  </div>
 
-                  {/* 업셀링 수익 계산기 */}
-                  {formData.final_price && (
-                    <UpsellCalculator
-                      basePrice={parseFloat(formData.final_price)}
-                      upsellRates={{
-                        guide: parseFloat(formData.upselling_guide_rate || 0),
-                        company: parseFloat(formData.upselling_company_rate || 0),
-                        ota: parseFloat(formData.upselling_ota_rate || 0)
-                      }}
-                      isEnabled={formData.upselling_enabled}
-                    />
-                  )}
-
-                  {/* 검증 오류 표시 */}
-                  {errors.upselling_total && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-red-600 text-sm">{errors.upselling_total}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!formData.upselling_enabled && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    💡 업셀링을 활성화하면 가이드가 추가 상품/서비스를 판매했을 때의 커미션을 설정할 수 있습니다.
-                    {selectedMasterProduct?.upselling_enabled && (
-                      <span className="text-blue-600 font-medium">
-                        {' '}선택한 마스터 상품에 업셀링 설정이 있습니다.
-                      </span>
+                    {/* 수익 미리보기 */}
+                    {formData.event_price && (
+                      <UpsellRevenueCalculator
+                        basePrice={parseFloat(formData.event_price)}
+                        upsellRates={{
+                          guide: parseFloat(formData.upselling_guide_rate || 0),
+                          company: parseFloat(formData.upselling_company_rate || 0),
+                          ota: parseFloat(formData.upselling_ota_rate || 0)
+                        }}
+                        isEnabled={formData.upselling_enabled}
+                      />
                     )}
-                  </p>
-                </div>
-              )}
+
+                    {errors.upselling_total && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-red-600 text-sm">{errors.upselling_total}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* 관리자 메모 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                관리자 메모
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">관리자 메모</label>
               <textarea
                 rows="3"
                 value={formData.admin_notes}
@@ -862,6 +707,7 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
   );
 };
 
+// 메인 EventManagement 컴포넌트
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
   const [masterProducts, setMasterProducts] = useState([]);
@@ -869,25 +715,28 @@ const EventManagement = () => {
   const [landCompanies, setLandCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('success');
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
 
-  // 실제 API를 사용한 데이터 로드
+  const showMessage = (msg, type = 'success') => {
+    setMessage(msg);
+    setMessageType(type);
+    setTimeout(() => setMessage(''), 5000);
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
       
-      // Supabase 연결 확인
       const connected = await testConnection();
       setIsConnected(connected);
       
       if (connected) {
-        // 실제 API 호출
         const [eventsResult, masterProductsResult, guidesResult, landCompaniesResult] = await Promise.all([
           eventService.getAll({ search: searchTerm, status: statusFilter }),
           masterProductService.getAll({ status: 'active' }),
@@ -896,257 +745,57 @@ const EventManagement = () => {
         ]);
 
         if (eventsResult.error) {
-          console.error('행사 로딩 오류:', eventsResult.error);
-          setEvents(getDummyEvents());
+          showMessage(`행사 데이터 로딩 실패: ${eventsResult.error}`, 'error');
         } else {
           setEvents(eventsResult.data || []);
         }
 
         if (masterProductsResult.error) {
-          console.error('마스터 상품 로딩 오류:', masterProductsResult.error);
-          setMasterProducts(getDummyMasterProducts());
+          showMessage(`마스터 상품 로딩 실패: ${masterProductsResult.error}`, 'error');
         } else {
           setMasterProducts(masterProductsResult.data || []);
         }
 
         if (guidesResult.error) {
-          console.error('가이드 로딩 오류:', guidesResult.error);
-          setGuides(getDummyGuides());
+          showMessage(`가이드 데이터 로딩 실패: ${guidesResult.error}`, 'error');
         } else {
           setGuides(guidesResult.data || []);
         }
 
         if (landCompaniesResult.error) {
-          console.error('랜드사 로딩 오류:', landCompaniesResult.error);
-          setLandCompanies(getDummyLandCompanies());
+          showMessage(`랜드사 데이터 로딩 실패: ${landCompaniesResult.error}`, 'error');
         } else {
           setLandCompanies(landCompaniesResult.data || []);
         }
       } else {
-        // 연결 실패 시 더미 데이터 사용
-        setEvents(getDummyEvents());
-        setMasterProducts(getDummyMasterProducts());
-        setGuides(getDummyGuides());
-        setLandCompanies(getDummyLandCompanies());
+        setEvents([]);
+        setMasterProducts([]);
+        setGuides([]);
+        setLandCompanies([]);
+        showMessage('데이터베이스에 연결할 수 없습니다.', 'error');
       }
     } catch (err) {
-      console.error('데이터 로딩 오류:', err);
       setIsConnected(false);
-      setEvents(getDummyEvents());
-      setMasterProducts(getDummyMasterProducts());
-      setGuides(getDummyGuides());
-      setLandCompanies(getDummyLandCompanies());
+      setEvents([]);
+      setMasterProducts([]);
+      setGuides([]);
+      setLandCompanies([]);
+      showMessage(`데이터 로딩 중 오류: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // 더미 데이터들 (업셀링 정보 포함)
-  const getDummyEvents = () => {
-    const dummyEvents = [
-      {
-        id: '1',
-        event_code: 'JP-TK-001-250715',
-        departure_date: '2025-07-15',
-        arrival_date: '2025-07-18',
-        departure_time: '09:30',
-        arrival_time: '12:45',
-        departure_airline: 'KE123',
-        arrival_airline: 'KE124',
-        event_price: 890000,
-        final_price: 850000,
-        max_capacity: 20,
-        current_bookings: 8,
-        status: 'active',
-        upselling_enabled: true,
-        upselling_guide_rate: 8.0,
-        upselling_company_rate: 15.0,
-        upselling_ota_rate: 5.0,
-        total_upselling_revenue: 240000,
-        master_products: {
-          id: '1',
-          product_name: '도쿄 클래식 투어',
-          product_code: 'JP-TK-001',
-          destination_country: '일본',
-          destination_city: '도쿄',
-          duration_days: 4,
-          duration_nights: 3
-        },
-        guides: {
-          id: '1',
-          name_ko: '김현수',
-          guide_id: 'GD001',
-          is_star_guide: true,
-          average_rating: 4.8
-        },
-        land_companies: {
-          id: '1',
-          company_name: '도쿄 트래블 서비스',
-          country: '일본'
-        }
-      },
-      {
-        id: '2',
-        event_code: 'JP-OS-002-250803',
-        departure_date: '2025-08-03',
-        arrival_date: '2025-08-05',
-        departure_time: '14:20',
-        arrival_time: '16:35',
-        departure_airline: 'OZ101',
-        arrival_airline: 'OZ102',
-        event_price: 650000,
-        final_price: 650000,
-        max_capacity: 15,
-        current_bookings: 12,
-        status: 'full',
-        upselling_enabled: false,
-        upselling_guide_rate: 0,
-        upselling_company_rate: 0,
-        upselling_ota_rate: 0,
-        total_upselling_revenue: 0,
-        master_products: {
-          id: '2',
-          product_name: '오사카 맛집 투어',
-          product_code: 'JP-OS-002',
-          destination_country: '일본',
-          destination_city: '오사카',
-          duration_days: 3,
-          duration_nights: 2
-        },
-        guides: {
-          id: '2',
-          name_ko: '박지은',
-          guide_id: 'GD002',
-          is_star_guide: false,
-          average_rating: 4.5
-        },
-        land_companies: {
-          id: '2',
-          company_name: '오사카 로컬 투어',
-          country: '일본'
-        }
-      }
-    ];
-
-    // 검색 필터 적용
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return dummyEvents.filter(event =>
-        event.event_code.toLowerCase().includes(searchLower) ||
-        event.master_products?.product_name.toLowerCase().includes(searchLower) ||
-        event.master_products?.destination_country.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // 상태 필터 적용
-    if (statusFilter) {
-      return dummyEvents.filter(event => event.status === statusFilter);
-    }
-
-    return dummyEvents;
-  };
-
-  const getDummyMasterProducts = () => [
-    {
-      id: '1',
-      product_code: 'JP-TK-001',
-      product_name: '도쿄 클래식 투어',
-      destination_country: '일본',
-      destination_city: '도쿄',
-      duration_days: 4,
-      duration_nights: 3,
-      base_price: 890000,
-      max_participants: 20,
-      base_airline: 'JAL',
-      upselling_enabled: true,
-      guide_commission_rate: 8.0,
-      company_commission_rate: 15.0,
-      ota_commission_rate: 5.0
-    },
-    {
-      id: '2',
-      product_code: 'JP-OS-002',
-      product_name: '오사카 맛집 투어',
-      destination_country: '일본',
-      destination_city: '오사카',
-      duration_days: 3,
-      duration_nights: 2,
-      base_price: 650000,
-      max_participants: 15,
-      base_airline: 'ANA',
-      upselling_enabled: false,
-      guide_commission_rate: 10.0,
-      company_commission_rate: 15.0,
-      ota_commission_rate: 3.0
-    }
-  ];
-
-  const getDummyGuides = () => [
-    {
-      id: '1',
-      guide_id: 'GD001',
-      name_ko: '김현수',
-      is_star_guide: true,
-      average_rating: 4.8,
-      experience_year: 5,
-      languages: ['일본어', '영어'],
-      land_companies: {
-        id: '1',
-        company_name: '도쿄 트래블 서비스',
-        country: '일본'
-      }
-    },
-    {
-      id: '2',
-      guide_id: 'GD002',
-      name_ko: '박지은',
-      is_star_guide: false,
-      average_rating: 4.5,
-      experience_year: 3,
-      languages: ['일본어'],
-      land_companies: {
-        id: '2',
-        company_name: '오사카 로컬 투어',
-        country: '일본'
-      }
-    }
-  ];
-
-  const getDummyLandCompanies = () => [
-    {
-      id: '1',
-      company_name: '도쿄 트래블 서비스',
-      country: '일본',
-      region: '도쿄'
-    },
-    {
-      id: '2',
-      company_name: '오사카 로컬 투어',
-      country: '일본',
-      region: '오사카'
-    },
-    {
-      id: '3',
-      company_name: '방콕 투어 컴퍼니',
-      country: '태국',
-      region: '방콕'
-    }
-  ];
-
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadData();
-    }, 300);
-    
+    const timeoutId = setTimeout(loadData, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, statusFilter, countryFilter]);
+  }, [searchTerm, statusFilter]);
 
   const handleSave = async (eventData) => {
     try {
       setSaving(true);
       
       if (isConnected) {
-        // 실제 API 사용
         let result;
         if (editingEvent) {
           result = await eventService.update(editingEvent.id, eventData);
@@ -1158,32 +807,15 @@ const EventManagement = () => {
           throw new Error(result.error);
         }
         
-        setSuccessMessage(editingEvent ? '행사가 수정되었습니다.' : '새 행사가 생성되었습니다.');
-        await loadData(); // 데이터 다시 로드
+        showMessage(editingEvent ? '행사가 성공적으로 수정되었습니다.' : '새 행사가 성공적으로 생성되었습니다.');
+        await loadData();
+        setShowForm(false);
+        setEditingEvent(null);
       } else {
-        // 더미 데이터 모드
-        if (editingEvent) {
-          setEvents(prev => prev.map(e => 
-            e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e
-          ));
-          setSuccessMessage('행사가 수정되었습니다.');
-        } else {
-          const newEvent = {
-            ...eventData,
-            id: Date.now().toString(),
-            event_code: `EVT-${Date.now()}`,
-            current_bookings: 0
-          };
-          setEvents(prev => [...prev, newEvent]);
-          setSuccessMessage('새 행사가 생성되었습니다.');
-        }
+        showMessage('데이터베이스에 연결되지 않았습니다.', 'error');
       }
-      
-      setShowForm(false);
-      setEditingEvent(null);
     } catch (err) {
-      console.error('저장 오류:', err);
-      setSuccessMessage(`저장 실패: ${err.message}`);
+      showMessage(`저장 실패: ${err.message}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -1194,25 +826,21 @@ const EventManagement = () => {
     
     try {
       if (isConnected) {
-        // 실제 API 사용
-        const { success, error } = await eventService.delete(id);
+        const result = await eventService.delete(id);
         
-        if (error) {
-          throw new Error(error);
+        if (result.error) {
+          throw new Error(result.error);
         }
         
-        if (success) {
-          setSuccessMessage('행사가 삭제되었습니다.');
-          await loadData(); // 데이터 다시 로드
+        if (result.success) {
+          showMessage('행사가 성공적으로 삭제되었습니다.');
+          await loadData();
         }
       } else {
-        // 더미 데이터 모드
-        setEvents(prev => prev.filter(e => e.id !== id));
-        setSuccessMessage('행사가 삭제되었습니다.');
+        showMessage('데이터베이스에 연결되지 않았습니다.', 'error');
       }
     } catch (err) {
-      console.error('삭제 오류:', err);
-      setSuccessMessage(`삭제 실패: ${err.message}`);
+      showMessage(`삭제 실패: ${err.message}`, 'error');
     }
   };
 
@@ -1240,62 +868,10 @@ const EventManagement = () => {
           </div>
           <div className="flex items-center gap-4">
             <ConnectionStatus isConnected={isConnected} />
-            
-            {/* 테스트 데이터 생성 버튼 */}
-            <button 
-              onClick={() => {
-                const testEvent = {
-                  id: Date.now().toString(),
-                  event_code: `TEST-${Date.now()}`,
-                  departure_date: '2025-09-15',
-                  arrival_date: '2025-09-18',
-                  departure_time: '10:30',
-                  arrival_time: '13:45',
-                  departure_airline: 'TEST001',
-                  arrival_airline: 'TEST002',
-                  event_price: 1200000,
-                  final_price: 1150000,
-                  max_capacity: 25,
-                  current_bookings: 7,
-                  status: 'active',
-                  upselling_enabled: true,
-                  upselling_guide_rate: 10.0,
-                  upselling_company_rate: 18.0,
-                  upselling_ota_rate: 6.0,
-                  total_upselling_revenue: 320000,
-                  master_products: {
-                    id: 'test',
-                    product_name: '테스트 여행 상품',
-                    product_code: 'TEST-001',
-                    destination_country: '테스트국',
-                    destination_city: '테스트시티',
-                    duration_days: 4,
-                    duration_nights: 3
-                  },
-                  guides: {
-                    id: 'test',
-                    name_ko: '테스트 가이드',
-                    guide_id: 'TEST001',
-                    is_star_guide: true,
-                    average_rating: 4.9
-                  },
-                  land_companies: {
-                    id: 'test',
-                    company_name: '테스트 랜드사',
-                    country: '테스트국'
-                  }
-                };
-                setEvents(prev => [testEvent, ...prev]);
-                setSuccessMessage('테스트 행사가 생성되었습니다!');
-              }}
-              className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2 text-sm"
-            >
-              🧪 테스트 행사 추가
-            </button>
-            
             <button 
               onClick={() => setShowForm(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              disabled={!isConnected}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
             >
               <Plus className="w-5 h-5" />
               새 행사 생성
@@ -1303,15 +879,16 @@ const EventManagement = () => {
           </div>
         </div>
 
-        {/* 성공 메시지 */}
-        {successMessage && (
-          <SuccessMessage 
-            message={successMessage} 
-            onClose={() => setSuccessMessage('')}
+        {/* 메시지 */}
+        {message && (
+          <Message 
+            message={message} 
+            type={messageType}
+            onClose={() => setMessage('')}
           />
         )}
 
-        {/* 통계 카드 */}
+        {/* 통계 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
@@ -1322,7 +899,6 @@ const EventManagement = () => {
               <Calendar className="w-8 h-8 text-blue-600" />
             </div>
           </div>
-          
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -1332,7 +908,6 @@ const EventManagement = () => {
               <Clock className="w-8 h-8 text-green-600" />
             </div>
           </div>
-          
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -1342,7 +917,6 @@ const EventManagement = () => {
               <UserCheck className="w-8 h-8 text-blue-600" />
             </div>
           </div>
-          
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -1352,7 +926,6 @@ const EventManagement = () => {
               <Users className="w-8 h-8 text-purple-600" />
             </div>
           </div>
-          
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -1366,7 +939,7 @@ const EventManagement = () => {
 
         {/* 검색 및 필터 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
               <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -1377,7 +950,6 @@ const EventManagement = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -1389,210 +961,176 @@ const EventManagement = () => {
               <option value="full">마감</option>
               <option value="cancelled">취소</option>
             </select>
-            
-            <select
-              value={countryFilter}
-              onChange={(e) => setCountryFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">모든 국가</option>
-              <option value="일본">일본</option>
-              <option value="태국">태국</option>
-              <option value="베트남">베트남</option>
-              <option value="싱가포르">싱가포르</option>
-            </select>
           </div>
         </div>
 
         {/* 행사 목록 */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    행사 정보
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    일정
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    가이드/랜드사
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    예약 현황
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    가격/업셀링
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    관리
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {events.map((event) => (
-                  <tr key={event.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {event.master_products?.product_name || '상품명 없음'}
-                        </div>
-                        <div className="text-sm text-gray-500">{event.event_code}</div>
-                        <div className="flex items-center mt-1">
-                          <MapPin className="w-4 h-4 text-gray-400 mr-1" />
-                          <span className="text-sm text-gray-600">
-                            {event.master_products?.destination_country}
-                            {event.master_products?.destination_city && 
-                              ` · ${event.master_products.destination_city}`}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-                          {event.departure_date} ~ {event.arrival_date}
-                        </div>
-                        {event.departure_time && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Clock className="w-4 h-4 text-gray-400 mr-1" />
-                            {event.departure_time} 출발
+          {events.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">행사 정보</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">일정</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">가이드</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">예약 현황</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">가격</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {events.map((event) => (
+                    <tr key={event.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {event.master_products?.product_name || '상품명 없음'}
                           </div>
-                        )}
-                        {event.departure_airline && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Plane className="w-4 h-4 text-gray-400 mr-1" />
-                            {event.departure_airline}
+                          <div className="text-sm text-gray-500">{event.event_code}</div>
+                          <div className="flex items-center mt-1">
+                            <MapPin className="w-4 h-4 text-gray-400 mr-1" />
+                            <span className="text-sm text-gray-600">
+                              {event.master_products?.destination_country}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    </td>
+                        </div>
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        {event.guides && (
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+                            {event.departure_date} ~ {event.arrival_date}
+                          </div>
+                          {event.departure_airline && (
+                            <div className="flex items-center text-sm text-gray-500">
+                              <Plane className="w-4 h-4 text-gray-400 mr-1" />
+                              {event.departure_airline}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        {event.guides ? (
                           <div className="flex items-center text-sm text-gray-900">
                             <UserCheck className="w-4 h-4 text-gray-400 mr-1" />
                             {event.guides.name_ko}
                             {event.guides.is_star_guide && <Star className="w-3 h-3 text-yellow-500 ml-1" />}
                           </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">미배정</span>
                         )}
-                        {event.land_companies && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Building2 className="w-4 h-4 text-gray-400 mr-1" />
-                            {event.land_companies.company_name}
-                          </div>
-                        )}
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-900">
-                          {event.current_bookings || 0} / {event.max_capacity}명
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ 
-                            width: `${Math.min(100, ((event.current_bookings || 0) / event.max_capacity) * 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium text-gray-900">
-                          ₩{(event.final_price || 0).toLocaleString()}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <Users className="w-4 h-4 text-gray-400 mr-1" />
+                          <span className="text-sm text-gray-900">
+                            {event.current_bookings || 0} / {event.max_capacity}명
+                          </span>
                         </div>
-                        {event.event_price !== event.final_price && (
-                          <div className="text-sm text-gray-500 line-through">
-                            ₩{(event.event_price || 0).toLocaleString()}
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-1">
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ 
+                              width: `${Math.min(100, ((event.current_bookings || 0) / event.max_capacity) * 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          {(() => {
+                            const basePrice = event.event_price || event.master_products?.base_price || 0;
+                            let displayPrice = basePrice;
+                            
+                            // 업셀링이 활성화된 경우 실제 최종가격 계산
+                            if (event.upselling_enabled && event.upselling_percentage) {
+                              // 저장된 업셀링 비율로 계산
+                              const upsellAmount = basePrice * (event.upselling_percentage / 100);
+                              displayPrice = basePrice + upsellAmount;
+                            }
+                            
+                            return (
+                              <>
+                                <div className="text-sm font-medium text-gray-900">
+                                  ₩{Math.round(displayPrice).toLocaleString()}
+                                </div>
+                                {event.upselling_enabled && displayPrice > basePrice && (
+                                  <div className="text-sm text-gray-500">
+                                    기본: ₩{basePrice.toLocaleString()} (+{event.upselling_percentage}%)
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                           {event.upselling_enabled ? (
-                            <div className="flex items-center gap-1">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                <TrendingUp className="w-3 h-3 mr-1" />
-                                업셀링 활성
-                              </span>
-                            </div>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              <TrendingUp className="w-3 h-3 mr-1" />
+                              업셀링
+                            </span>
                           ) : (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                              업셀링 비활성
+                              기본 패키지
                             </span>
                           )}
-                          {event.total_upselling_revenue > 0 && (
-                            <div className="text-xs text-green-600 font-medium">
-                              업셀링 수익: ₩{event.total_upselling_revenue.toLocaleString()}
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <StatusBadge status={event.status} />
-                    </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={event.status} />
+                      </td>
 
-                    <td className="px-6 py-4 text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => {
-                            setEditingEvent(event);
-                            setShowForm(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="수정"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(event.id, event.event_code)}
-                          className="text-red-600 hover:text-red-900"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <td className="px-6 py-4 text-sm font-medium">
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              setEditingEvent(event);
+                              setShowForm(true);
+                            }}
+                            disabled={!isConnected}
+                            className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(event.id, event.event_code)}
+                            disabled={!isConnected}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm || statusFilter ? '검색 결과가 없습니다' : '등록된 행사가 없습니다'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm || statusFilter ? '다른 검색 조건을 시도해보세요.' : '마스터 상품을 기반으로 새 행사를 생성해보세요.'}
+              </p>
+              {!searchTerm && !statusFilter && isConnected && (
+                <button 
+                  onClick={() => setShowForm(true)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  첫 번째 행사 생성
+                </button>
+              )}
+            </div>
+          )}
         </div>
-
-        {/* 빈 상태 */}
-        {events.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm || statusFilter ? '검색 결과가 없습니다' : '등록된 행사가 없습니다'}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm || statusFilter ? '다른 검색 조건을 시도해보세요.' : '마스터 상품을 기반으로 새 행사를 생성해보세요.'}
-            </p>
-            {!searchTerm && !statusFilter && (
-              <button 
-                onClick={() => setShowForm(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                첫 번째 행사 생성
-              </button>
-            )}
-          </div>
-        )}
 
         {/* 행사 폼 모달 */}
         {showForm && (

@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { 
   Package, Users, Building2, Settings, BarChart3,
-  Calendar, MessageSquare, TrendingUp
+  Calendar, MessageSquare, TrendingUp,
+  Home
 } from 'lucide-react';
 
 // 페이지 컴포넌트 import
@@ -12,6 +13,7 @@ import CompanyManagement from './pages/CompanyManagement.jsx';
 import GuideManagement from './pages/GuideManagement.jsx';
 import MasterProductManagement from './pages/MasterProductManagement.jsx';
 import EventManagement from './pages/EventManagement.jsx';
+import Main from './pages/Main.jsx'
 
 import './App.css';
 
@@ -19,6 +21,7 @@ import './App.css';
 const menuItems = [
 
   { id: 'dashboard', label: '대시보드', icon: BarChart3 },
+  { id :'main', label :  '메인' ,icon : Home},
   { id : 'master_product', label : '마스터 상품', icon: Package},
   { id : 'event', label : '행사', icon :Calendar},
   // { id: 'products', label: '상품 관리', icon: Package },
@@ -47,6 +50,8 @@ const AdminDashboard = () => {
 
   const renderContent = () => {
     switch (activeMenu) {
+      case 'main':
+        return <Main/>;
       case 'master_product':
         return <MasterProductManagement />;
       case 'event':
