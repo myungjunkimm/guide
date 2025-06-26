@@ -1,0 +1,268 @@
+/* src/App.css */
+
+/* 애니메이션 키프레임을 먼저 정의 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 애니메이션 클래스 정의 */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s infinite;
+}
+
+/* App 컴포넌트 전용 스타일 */
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 로딩 화면 스타일 */
+.loading-container {
+  @apply min-h-screen bg-gray-100 flex items-center justify-center;
+}
+
+.loading-content {
+  @apply text-center;
+}
+
+.loading-spinner {
+  @apply animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto;
+}
+
+.loading-text {
+  @apply mt-4 text-gray-600 font-medium;
+}
+
+/* 에러 화면 스타일 */
+.error-container {
+  @apply min-h-screen bg-gray-100 flex items-center justify-center;
+}
+
+.error-content {
+  @apply text-center max-w-md mx-auto p-6;
+}
+
+.error-title {
+  @apply text-2xl font-bold text-red-600 mb-4;
+}
+
+.error-message {
+  @apply text-gray-600 mb-6;
+}
+
+.error-details {
+  @apply bg-red-50 border border-red-200 rounded-md p-4 mb-6;
+}
+
+.error-code {
+  @apply font-mono text-sm text-red-800 bg-red-100 px-2 py-1 rounded;
+}
+
+.retry-button {
+  @apply bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200;
+}
+
+/* 연결 상태 표시 */
+.connection-status {
+  @apply fixed top-4 right-4 z-50;
+}
+
+.connection-badge {
+  @apply px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.connection-online {
+  @apply bg-green-100 text-green-800;
+}
+
+.connection-offline {
+  @apply bg-red-100 text-red-800;
+}
+
+.connection-checking {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+/* 전체 레이아웃 스타일 */
+.app-layout {
+  @apply flex h-screen bg-gray-100;
+}
+
+.app-sidebar {
+  @apply bg-white shadow-lg transition-all duration-300;
+}
+
+.app-main {
+  @apply flex-1 flex flex-col overflow-hidden;
+}
+
+.app-header {
+  @apply bg-white shadow-sm border-b border-gray-200;
+}
+
+.app-content {
+  @apply flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6;
+}
+
+/* 커스텀 토스트/알림 스타일 (수정됨) */
+.toast-container {
+  @apply fixed top-4 right-4 z-50 space-y-2;
+}
+
+.toast {
+  @apply bg-white shadow-lg rounded-md border p-4 min-w-[300px];
+  animation: fadeIn 0.3s ease-out;
+}
+
+.toast-success {
+  @apply border-green-200 bg-green-50;
+}
+
+.toast-error {
+  @apply border-red-200 bg-red-50;
+}
+
+.toast-warning {
+  @apply border-yellow-200 bg-yellow-50;
+}
+
+.toast-info {
+  @apply border-blue-200 bg-blue-50;
+}
+
+/* 데이터 로딩 상태 */
+.data-loading {
+  @apply animate-pulse;
+}
+
+.skeleton {
+  @apply bg-gray-200 rounded;
+}
+
+.skeleton-text {
+  @apply h-4 bg-gray-200 rounded;
+}
+
+.skeleton-avatar {
+  @apply h-10 w-10 bg-gray-200 rounded-full;
+}
+
+/* 빈 상태 스타일 */
+.empty-state {
+  @apply text-center py-12;
+}
+
+.empty-state-icon {
+  @apply h-12 w-12 text-gray-400 mx-auto mb-4;
+}
+
+.empty-state-title {
+  @apply text-lg font-medium text-gray-900 mb-2;
+}
+
+.empty-state-description {
+  @apply text-gray-600 mb-6;
+}
+
+/* 검색 결과 하이라이트 */
+.search-highlight {
+  @apply bg-yellow-200 px-1 rounded;
+}
+
+/* 반응형 설정 */
+@media (max-width: 768px) {
+  .app-content {
+    @apply p-4;
+  }
+  
+  .loading-spinner {
+    @apply h-24 w-24;
+  }
+  
+  .error-content {
+    @apply px-4;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-content {
+    @apply p-2;
+  }
+  
+  .loading-container,
+  .error-container {
+    @apply px-4;
+  }
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .app-sidebar {
+    transition: none;
+  }
+  
+  .animate-fade-in,
+  .animate-slide-in,
+  .animate-pulse-slow {
+    animation: none;
+  }
+}
+
+/* 포커스 관리 */
+.skip-link {
+  @apply absolute top-0 left-0 bg-blue-600 text-white px-4 py-2 rounded-br-md transform -translate-y-full focus:translate-y-0 transition-transform z-50;
+}
+
+/* 프린트 스타일 */
+@media print {
+  .app-sidebar,
+  .app-header {
+    display: none !important;
+  }
+  
+  .app-main {
+    @apply block;
+  }
+  
+  .app-content {
+    @apply p-0 overflow-visible;
+  }
+}
