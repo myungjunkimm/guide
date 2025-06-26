@@ -613,10 +613,39 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
 
             {/* 업셀링 및 커미션 설정 */}
             <div className="border-t pt-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-                업셀링 및 커미션 설정 (행사별 개별 설정)
-              </h4>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  업셀링 및 커미션 설정 (행사별 개별 설정)
+                </h4>
+                
+                {/* 테스트 데이터 자동 생성 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      event_price: 890000,
+                      final_price: 850000,
+                      max_capacity: 20,
+                      departure_time: '09:30',
+                      arrival_time: '12:45',
+                      departure_airline: 'KE123',
+                      arrival_airline: 'KE124',
+                      departure_airport: '인천국제공항',
+                      arrival_airport: '나리타국제공항',
+                      upselling_enabled: true,
+                      upselling_guide_rate: 8.0,
+                      upselling_company_rate: 15.0,
+                      upselling_ota_rate: 5.0,
+                      admin_notes: '테스트용 자동 생성 데이터입니다.'
+                    }));
+                  }}
+                  className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 flex items-center gap-1"
+                >
+                  🧪 테스트 데이터 생성
+                </button>
+              </div>
 
               {/* 마스터 상품의 업셀링 정보 표시 */}
               {selectedMasterProduct && (
@@ -740,9 +769,9 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        총 업셀링 비율
+                        총 업셀링 비율 (자동 계산)
                       </label>
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
+                      <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed">
                         <div className={`text-sm font-medium ${
                           (parseFloat(formData.upselling_guide_rate || 0) + 
                            parseFloat(formData.upselling_company_rate || 0) + 
@@ -754,7 +783,7 @@ const EventForm = ({ event, onSave, onCancel, isLoading, masterProducts, guides,
                             parseFloat(formData.upselling_ota_rate || 0)).toFixed(1)}%
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">전체 커미션 비율 (100% 이하 권장)</p>
+                      <p className="text-xs text-gray-500 mt-1">전체 커미션 비율 (자동 계산, 100% 이하 권장)</p>
                     </div>
                   </div>
 
@@ -1211,6 +1240,59 @@ const EventManagement = () => {
           </div>
           <div className="flex items-center gap-4">
             <ConnectionStatus isConnected={isConnected} />
+            
+            {/* 테스트 데이터 생성 버튼 */}
+            <button 
+              onClick={() => {
+                const testEvent = {
+                  id: Date.now().toString(),
+                  event_code: `TEST-${Date.now()}`,
+                  departure_date: '2025-09-15',
+                  arrival_date: '2025-09-18',
+                  departure_time: '10:30',
+                  arrival_time: '13:45',
+                  departure_airline: 'TEST001',
+                  arrival_airline: 'TEST002',
+                  event_price: 1200000,
+                  final_price: 1150000,
+                  max_capacity: 25,
+                  current_bookings: 7,
+                  status: 'active',
+                  upselling_enabled: true,
+                  upselling_guide_rate: 10.0,
+                  upselling_company_rate: 18.0,
+                  upselling_ota_rate: 6.0,
+                  total_upselling_revenue: 320000,
+                  master_products: {
+                    id: 'test',
+                    product_name: '테스트 여행 상품',
+                    product_code: 'TEST-001',
+                    destination_country: '테스트국',
+                    destination_city: '테스트시티',
+                    duration_days: 4,
+                    duration_nights: 3
+                  },
+                  guides: {
+                    id: 'test',
+                    name_ko: '테스트 가이드',
+                    guide_id: 'TEST001',
+                    is_star_guide: true,
+                    average_rating: 4.9
+                  },
+                  land_companies: {
+                    id: 'test',
+                    company_name: '테스트 랜드사',
+                    country: '테스트국'
+                  }
+                };
+                setEvents(prev => [testEvent, ...prev]);
+                setSuccessMessage('테스트 행사가 생성되었습니다!');
+              }}
+              className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2 text-sm"
+            >
+              🧪 테스트 행사 추가
+            </button>
+            
             <button 
               onClick={() => setShowForm(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
