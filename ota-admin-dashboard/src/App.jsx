@@ -58,7 +58,7 @@ const AdminDashboard = () => {
       case 'event':
         return <EventManagement />;
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onMenuChange={setActiveMenu} />; // ← 이 부분 수정
       case 'products':
         return <ProductManagement />;
       case 'companies':
@@ -69,13 +69,11 @@ const AdminDashboard = () => {
         return <EmptyPage title="행사 관리" />;
       case 'reviews':
         return <ReviewManagement />;
-      case 'upselling':
-        return <EmptyPage title="업셀링 설정" />;
+  
       default:
-        return <Dashboard />;
+        return <Dashboard onMenuChange={setActiveMenu} />; // ← 이 부분도 수정
     }
   };
-
   return (
     <div className="flex h-screen bg-gray-100">
       {/* 사이드바 */}
@@ -84,7 +82,7 @@ const AdminDashboard = () => {
           <div className="flex items-center">
             <Package className="h-8 w-8 text-blue-600" />
             {sidebarOpen && (
-              <span className="ml-3 text-xl font-bold text-gray-900">OT Guide & Upselling PoC</span>
+              <span className="ml-3 text-xl font-bold text-gray-900">PoC</span>
             )}
           </div>
         </div>

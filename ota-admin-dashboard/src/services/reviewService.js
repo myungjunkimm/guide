@@ -330,41 +330,57 @@ const reviewService = {
       if (!reviewData.guide_id || !reviewData.event_id || !reviewData.author) {
         throw new Error('가이드 ID, 행사 ID, 작성자는 필수 입력 항목입니다.');
       }
-
-      // 데이터 정리 및 형식 맞추기
+  
+      // 전체 평점 계산 (카테고리 평점의 평균)
+      let overallRating = 0;
+      if (reviewData.categories) {
+        const categoryRatings = Object.values(reviewData.categories);
+        const validRatings = categoryRatings.filter(rating => rating > 0);
+        if (validRatings.length > 0) {
+          overallRating = Math.round(validRatings.reduce((sum, rating) => sum + rating, 0) / validRatings.length);
+        }
+      }
+  
+      // 데이터 정리 및 형식 맞추기 (detailed_ratings 제거, 개별 컬럼 사용)
       const insertData = {
         guide_id: reviewData.guide_id,
         event_id: reviewData.event_id,
-        author_name: reviewData.author, // author → author_name
-        membership_type: reviewData.membershipType,
-        guide_rating: reviewData.overallRating,
+        author_name: reviewData.author,
+        membership_type: reviewData.membershipType || 'non_member',
+        guide_rating: overallRating,
         guide_review: reviewData.comment,
-        detailed_ratings: reviewData.detailedRatings || null,
+        // 개별 평가 항목들 (detailed_ratings 대신)
+        professionalism_rating: reviewData.categories?.professionalism || null,
+        communication_rating: reviewData.categories?.communication || null,
+        knowledge_rating: reviewData.categories?.knowledge || null,
+        friendliness_rating: reviewData.categories?.kindness || null,
+        punctuality_rating: reviewData.categories?.punctuality || null,
+        would_recommend: overallRating >= 4,
         review_status: reviewData.membershipType === 'member' ? 'approved' : 'pending',
         submitted_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-
+  
       console.log('🆕 후기 작성 데이터:', insertData);
-
+  
       const { data, error } = await supabase
         .from('guide_ratings')
         .insert([insertData])
         .select()
         .single();
-
+  
       if (error) {
         throw new Error(`후기 작성 실패: ${error.message}`);
       }
-
+  
       console.log('✅ 후기 작성 성공:', data);
-
+  
       // 회원 후기인 경우 가이드 평점 즉시 업데이트
       if (insertData.review_status === 'approved') {
         await this.updateGuideRating(reviewData.guide_id);
       }
-
+  
       return {
         success: true,
         data: data,
