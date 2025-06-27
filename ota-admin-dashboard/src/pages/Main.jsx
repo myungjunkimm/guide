@@ -243,7 +243,7 @@ const FilterSection = ({ filters, onFilterChange, countries }) => {
 };
 
 // EventList 컴포넌트 import 추가
-import EventList from './EventList.jsx';
+import EventList from './Eventlist.jsx';
 
 // 메인 컴포넌트
 const Main = () => {
