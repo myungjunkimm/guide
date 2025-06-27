@@ -3,8 +3,11 @@ import React, { useState } from 'react';
 import { 
   CheckCircle, Star, Send, ArrowLeft, Calendar, 
   MapPin, UserCheck, Heart, MessageSquare, User,
-  TrendingUp, Award, ThumbsUp, AlertCircle, Users // 🆕 Users 아이콘 추가
+  TrendingUp, Award, ThumbsUp, AlertCircle, Users
 } from 'lucide-react';
+
+// 🆕 후기 서비스 import
+import reviewService from '../services/reviewService';
 
 // 가이드 후기 작성 컴포넌트
 const GuideReviewForm = ({ event, onBack, onComplete }) => {
@@ -60,19 +63,21 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
     );
   };
 
-  // 전체 평점 계산
+  // 전체 평점 계산 (정수로 반올림하여 표시는 소수점으로)
   const calculateOverallRating = () => {
     const categoryRatings = Object.values(reviewData.categories);
     const validRatings = categoryRatings.filter(rating => rating > 0);
-    return validRatings.length > 0 ? 
-      (validRatings.reduce((sum, rating) => sum + rating, 0) / validRatings.length).toFixed(1) : 0;
+    if (validRatings.length === 0) return 0;
+    
+    const average = validRatings.reduce((sum, rating) => sum + rating, 0) / validRatings.length;
+    return Math.round(average * 10) / 10; // 소수점 첫째 자리까지만
   };
 
-  // 폼 제출 처리
+  // 🆕 실제 후기 제출 처리
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // 🆕 유효성 검사 강화
+    // 유효성 검사
     if (!reviewData.author.trim()) {
       alert('작성자 이름을 입력해주세요.');
       return;
@@ -80,6 +85,11 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
     
     if (!reviewData.comment.trim()) {
       alert('후기 내용을 입력해주세요.');
+      return;
+    }
+
+    if (reviewData.comment.trim().length < 20) {
+      alert('후기 내용을 최소 20자 이상 작성해주세요.');
       return;
     }
 
@@ -92,21 +102,40 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
     setIsSubmitting(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const finalReview = {
-        ...reviewData,
-        overallRating: calculateOverallRating(),
-        eventId: event.id,
-        guideId: event.guides?.id,
-        submittedAt: new Date().toISOString()
+      // 🆕 실제 후기 서비스 호출
+      const reviewPayload = {
+        guide_id: event.guides?.id,
+        event_id: event.id,
+        author: reviewData.author.trim(),
+        membershipType: reviewData.membershipType,
+        comment: reviewData.comment.trim(),
+        categories: reviewData.categories
       };
 
-      console.log('🎯 후기 제출 완료:', finalReview);
-      onComplete(finalReview);
+      console.log('🎯 후기 제출 시작:', reviewPayload);
+
+      const result = await reviewService.createReview(reviewPayload);
+
+      if (result.success) {
+        // 성공 시 완료 화면으로 이동
+        const finalReview = {
+          ...reviewData,
+          overallRating: calculateOverallRating(),
+          eventId: event.id,
+          guideId: event.guides?.id,
+          submittedAt: new Date().toISOString(),
+          id: result.data.id
+        };
+
+        console.log('✅ 후기 제출 완료:', result);
+        onComplete(finalReview);
+      } else {
+        // 실패 시 에러 메시지 표시
+        alert(`후기 제출에 실패했습니다: ${result.error}`);
+      }
     } catch (error) {
       console.error('후기 제출 실패:', error);
-      alert('후기 제출에 실패했습니다. 다시 시도해주세요.');
+      alert(`후기 제출에 실패했습니다: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +160,7 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
 
           {/* 여행 정보 요약 */}
           <div className="mt-4 bg-gray-50 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 mb-2">{event.master_products?.title}</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">{event.master_products?.product_name}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="w-4 h-4 text-blue-600" />
@@ -145,7 +174,7 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
                 <UserCheck className="w-4 h-4 text-purple-600" />
                 <span>{event.guides?.name_ko} 가이드</span>
                 {event.guides?.is_star_guide && (
-                  <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">⭐ 스타</span>
                 )}
               </div>
             </div>
@@ -153,19 +182,19 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
         </div>
       </div>
 
+      {/* 후기 작성 폼 */}
       <div className="max-w-4xl mx-auto px-6 py-8">
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* 🆕 작성자 정보 섹션 */}
+          {/* 작성자 정보 */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                 <User className="w-6 h-6 text-blue-600" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">작성자 정보</h2>
+              <h3 className="text-xl font-bold text-gray-900">작성자 정보</h3>
             </div>
 
-            <div className="space-y-6">
-              {/* 작성자 이름 입력 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-2">
                   작성자 이름 <span className="text-red-500">*</span>
@@ -175,48 +204,26 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
                   id="author"
                   value={reviewData.author}
                   onChange={(e) => setReviewData(prev => ({ ...prev, author: e.target.value }))}
-                  placeholder="이름을 입력해주세요"
+                  placeholder="이름을 입력하세요"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   required
                 />
               </div>
 
-              {/* 회원/비회원 선택 라디오 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  회원 구분 <span className="text-red-500">*</span>
+                <label htmlFor="membershipType" className="block text-sm font-medium text-gray-700 mb-2">
+                  회원 구분
                 </label>
-                <div className="flex items-center space-x-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="membershipType"
-                      value="member"
-                      checked={reviewData.membershipType === 'member'}
-                      onChange={(e) => setReviewData(prev => ({ ...prev, membershipType: e.target.value }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 flex items-center gap-2 text-sm text-gray-700">
-                      <Users className="w-4 h-4 text-blue-600" />
-                      회원
-                    </span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="membershipType"
-                      value="guest"
-                      checked={reviewData.membershipType === 'guest'}
-                      onChange={(e) => setReviewData(prev => ({ ...prev, membershipType: e.target.value }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 flex items-center gap-2 text-sm text-gray-700">
-                      <User className="w-4 h-4 text-gray-600" />
-                      비회원
-                    </span>
-                  </label>
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
+                <select
+                  id="membershipType"
+                  value={reviewData.membershipType}
+                  onChange={(e) => setReviewData(prev => ({ ...prev, membershipType: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="member">회원</option>
+                  <option value="non-member">비회원</option>
+                </select>
+                <p className="mt-1 text-sm text-gray-500">
                   {reviewData.membershipType === 'member' 
                     ? '회원 혜택: 포인트 적립 및 할인 쿠폰 제공' 
                     : '비회원도 후기 작성이 가능합니다'
@@ -248,7 +255,7 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
                 {calculateOverallRating()}/5.0
               </div>
               <div className="flex justify-center mb-2">
-                {renderStars(Math.round(calculateOverallRating() * 2) / 2, () => {}, null, 'w-6 h-6')}
+                {renderStars(Math.round(calculateOverallRating()), () => {}, null, 'w-6 h-6')}
               </div>
               <p className="text-sm text-gray-600">종합 평점</p>
             </div>
@@ -320,7 +327,9 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
               />
               <div className="flex justify-between text-sm text-gray-500">
                 <span>최소 20자 이상 작성해주세요</span>
-                <span>{reviewData.comment.length}/1000</span>
+                <span className={reviewData.comment.length < 20 ? 'text-red-500' : 'text-gray-500'}>
+                  {reviewData.comment.length}/1000
+                </span>
               </div>
             </div>
           </div>
@@ -336,7 +345,7 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !reviewData.comment.trim() || !reviewData.author.trim()}
+              disabled={isSubmitting || !reviewData.comment.trim() || !reviewData.author.trim() || reviewData.comment.length < 20}
               className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
@@ -360,7 +369,7 @@ const GuideReviewForm = ({ event, onBack, onComplete }) => {
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">후기 작성 안내</p>
                 <ul className="space-y-1 text-blue-700">
-                  <li>• 작성된 후기는 24시간 내에 검토 후 공개됩니다</li>
+                  <li>• {reviewData.membershipType === 'member' ? '회원 후기는 즉시 반영됩니다' : '비회원 후기는 관리자 승인 후 반영됩니다'}</li>
                   <li>• {reviewData.membershipType === 'member' ? '회원님께는 후기 작성 완료 후 100포인트가 적립됩니다' : '비회원도 후기 작성이 가능하며, 회원 가입 시 더 많은 혜택을 받으실 수 있습니다'}</li>
                   <li>• 허위 정보나 부적절한 내용이 포함된 후기는 삭제될 수 있습니다</li>
                 </ul>
@@ -424,13 +433,12 @@ const ReviewCompleteScreen = ({ review, event, onGoHome }) => {
         <div className="space-y-3">
           <button
             onClick={() => {
-              // 가이드의 평점 업데이트 시뮬레이션
-              console.log('📊 가이드 평점 업데이트:', {
+              console.log('📊 후기 제출 완료 - 가이드 평점 자동 업데이트됨:', {
                 guideId: event.guides?.id,
                 newRating: review.overallRating,
-                reviewCount: '기존 리뷰 수 + 1',
                 author: review.author,
-                membershipType: review.membershipType
+                membershipType: review.membershipType,
+                reviewId: review.id
               });
               
               // 회원 포인트 적립 시뮬레이션
@@ -451,7 +459,6 @@ const ReviewCompleteScreen = ({ review, event, onGoHome }) => {
           
           <button
             onClick={() => {
-              // 추가 후기 작성하기 (다른 여행에 대한)
               alert('다른 여행 후기도 작성해보세요!');
             }}
             className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors"
@@ -462,8 +469,8 @@ const ReviewCompleteScreen = ({ review, event, onGoHome }) => {
 
         <div className="mt-6 text-xs text-gray-500">
           {review.membershipType === 'member' 
-            ? '후기는 24시간 내에 검토 후 공개되며, 100포인트가 적립됩니다' 
-            : '후기는 24시간 내에 검토 후 공개됩니다'
+            ? '회원 후기는 즉시 반영되며, 100포인트가 적립됩니다' 
+            : '비회원 후기는 관리자 승인 후 반영됩니다'
           }
         </div>
       </div>
@@ -540,9 +547,9 @@ const SimpleBookingFlow = ({ event, onBack, initialStep = 'booking' }) => {
             <div className="flex justify-between border-t pt-3">
               <span className="font-medium">총 비용</span>
               <span className="text-lg font-bold text-blue-600">
-                ₩{(event.upselling_enabled ? 
-                  event.event_price * (1 + event.upselling_percentage / 100) : 
-                  event.event_price
+                ₩{(event.upselling_enabled 
+                  ? event.event_price * (1 + event.upselling_percentage / 100) 
+                  : event.event_price
                 ).toLocaleString()}
               </span>
             </div>

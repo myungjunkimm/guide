@@ -14,6 +14,7 @@ import GuideManagement from './pages/GuideManagement.jsx';
 import MasterProductManagement from './pages/MasterProductManagement.jsx';
 import EventManagement from './pages/EventManagement.jsx';
 import Main from './pages/Main.jsx'
+import ReviewManagement from './pages/ReviewManagement.jsx';
 
 import './App.css';
 
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
       case 'events':
         return <EmptyPage title="행사 관리" />;
       case 'reviews':
-        return <EmptyPage title="후기 관리" />;
+        return <ReviewManagement />;
       case 'upselling':
         return <EmptyPage title="업셀링 설정" />;
       default:
