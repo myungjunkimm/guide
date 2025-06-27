@@ -1,12 +1,13 @@
-// src/pages/Main.jsx (사용자용 메인 페이지)
+// src/pages/Main.jsx (사용자용 메인 페이지) - 후기 아이콘 추가
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Clock, Users, DollarSign, Star, Calendar, 
-  TrendingUp, ArrowRight, Heart, Filter, Search
+  TrendingUp, ArrowRight, Heart, Filter, Search, MessageSquare
 } from 'lucide-react';
 
 // API 서비스 import
 import masterProductService from '../services/masterProductService';
+import reviewService from '../services/reviewService'; // 🆕 후기 서비스 추가
 import { testConnection } from '../lib/supabase';
 
 // 로딩 컴포넌트
@@ -17,12 +18,15 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// 상품 카드 컴포넌트
-const ProductCard = ({ product, onProductClick }) => {
+// 🆕 수정된 상품 카드 컴포넌트 (후기 정보 포함)
+const ProductCard = ({ product, onProductClick, reviewStats = null }) => {
   const [isFavorited, setIsFavorited] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer group">
+    <div 
+      onClick={() => onProductClick(product)}
+      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
+    >
       {/* 상품 이미지 */}
       <div className="relative h-64 overflow-hidden">
         {product.product_images && product.product_images.length > 0 ? (
@@ -37,58 +41,101 @@ const ProductCard = ({ product, onProductClick }) => {
           </div>
         )}
         
-        {/* 찜하기 버튼 */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFavorited(!isFavorited);
-          }}
-          className="absolute top-4 right-4 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
-        >
-          <Heart 
-            className={`w-5 h-5 ${isFavorited ? 'text-red-500 fill-current' : 'text-gray-600'}`}
-          />
-        </button>
+        {/* 우상단 아이콘들 */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
+          {/* 🆕 후기 아이콘 및 개수 */}
+          {reviewStats && reviewStats.count > 0 && (
+            <div className="flex items-center gap-1 px-3 py-1 bg-white/90 rounded-full shadow-sm">
+              <MessageSquare className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-900">{reviewStats.count}</span>
+              {reviewStats.averageRating > 0 && (
+                <>
+                  <Star className="w-4 h-4 text-yellow-400 fill-current ml-1" />
+                  <span className="text-sm font-medium text-gray-900">
+                    {reviewStats.averageRating.toFixed(1)}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+          
+          {/* 찜하기 버튼 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFavorited(!isFavorited);
+            }}
+            className="p-2 rounded-full bg-white/80 hover:bg-white transition-colors shadow-sm"
+          >
+            <Heart 
+              className={`w-5 h-5 ${isFavorited ? 'text-red-500 fill-current' : 'text-gray-600'}`} 
+            />
+          </button>
+        </div>
 
         {/* 스타가이드 배지 */}
         {product.is_star_guide_product && (
-          <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-            <Star className="w-4 h-4 fill-current" />
-            스타가이드
+          <div className="absolute top-4 left-4">
+            <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+              <Star className="w-4 h-4 fill-current" />
+              스타가이드
+            </div>
           </div>
         )}
 
-        {/* 업셀링 배지 */}
+        {/* 특가 혜택 배지 */}
         {product.upselling_enabled && (
-          <div className="absolute bottom-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-            <TrendingUp className="w-4 h-4" />
-            특가 혜택
+          <div className="absolute bottom-4 left-4">
+            <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+              <TrendingUp className="w-4 h-4" />
+              특가 혜택
+            </div>
           </div>
         )}
       </div>
 
-      {/* 상품 정보 */}
-      <div className="p-6" onClick={() => onProductClick(product)}>
-        {/* 제목과 위치 */}
-        <div className="mb-4">
-          <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-            {product.product_name}
-          </h3>
-          <div className="flex items-center text-gray-600 text-sm">
-            <MapPin className="w-4 h-4 mr-1" />
-            <span>{product.destination_country} • {product.destination_city}</span>
-          </div>
+      {/* 카드 내용 */}
+      <div className="p-6">
+        {/* 상품명 */}
+        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+          {product.product_name}
+        </h3>
+
+        {/* 목적지 정보 */}
+        <div className="flex items-center text-gray-600 mb-3">
+          <MapPin className="w-4 h-4 mr-1" />
+          <span className="text-sm">
+            {product.destination_country} · {product.destination_city}
+          </span>
         </div>
 
-        {/* 여행 정보 */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <Clock className="w-4 h-4 mr-2 text-blue-500" />
-            <span>{product.duration_days}일 {product.duration_nights}박</span>
+        {/* 🆕 후기 요약 (카드 내부에도 표시) */}
+        {reviewStats && reviewStats.count > 0 && (
+          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg mb-3">
+            <div className="flex items-center gap-1">
+              <Star className="w-5 h-5 text-yellow-400 fill-current" />
+              <span className="font-bold text-gray-900">{reviewStats.averageRating.toFixed(1)}</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              {reviewStats.count}개 후기
+            </div>
           </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <Users className="w-4 h-4 mr-2 text-green-500" />
-            <span>최대 {product.max_participants}명</span>
+        )}
+
+        {/* 여행 정보 */}
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center text-gray-600">
+            <Clock className="w-4 h-4 mr-2" />
+            <span className="text-sm">
+              {product.duration_days}일 {product.duration_nights}박
+            </span>
+          </div>
+          
+          <div className="flex items-center text-gray-600">
+            <Users className="w-4 h-4 mr-2" />
+            <span className="text-sm">
+              최대 {product.max_participants}명
+            </span>
           </div>
         </div>
 
@@ -149,18 +196,18 @@ const FilterSection = ({ filters, onFilterChange, countries }) => {
           <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="상품명, 도시명으로 검색..."
+            placeholder="상품명, 목적지로 검색..."
             value={filters.search}
             onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
-        {/* 국가 선택 */}
+        {/* 국가 필터 */}
         <select
           value={filters.country}
           onChange={(e) => onFilterChange({ ...filters, country: e.target.value })}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">모든 국가</option>
           {countries.map(country => (
@@ -168,26 +215,25 @@ const FilterSection = ({ filters, onFilterChange, countries }) => {
           ))}
         </select>
 
-        {/* 여행 기간 */}
+        {/* 기간 필터 */}
         <select
           value={filters.duration}
           onChange={(e) => onFilterChange({ ...filters, duration: e.target.value })}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">모든 기간</option>
-          <option value="2-3">2-3일</option>
-          <option value="4-5">4-5일</option>
-          <option value="6-7">6-7일</option>
-          <option value="8+">8일 이상</option>
+          <option value="1-3">1-3일</option>
+          <option value="4-6">4-6일</option>
+          <option value="7+">7일 이상</option>
         </select>
 
-        {/* 특별 옵션 */}
+        {/* 특성 필터 */}
         <select
           value={filters.special}
           onChange={(e) => onFilterChange({ ...filters, special: e.target.value })}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="">전체 상품</option>
+          <option value="">모든 상품</option>
           <option value="star_guide">스타가이드</option>
           <option value="upselling">특가 혜택</option>
         </select>
@@ -203,6 +249,7 @@ import EventList from './EventList.jsx';
 const Main = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [reviewsData, setReviewsData] = useState({}); // 🆕 후기 데이터 상태 추가
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [filters, setFilters] = useState({
@@ -219,6 +266,38 @@ const Main = () => {
   // 국가 목록 추출
   const countries = [...new Set(products.map(p => p.destination_country))].filter(Boolean);
 
+  // 🆕 모든 상품의 후기 데이터 로딩
+  const loadAllReviews = async (productList) => {
+    try {
+      console.log('🔍 모든 상품의 후기 데이터 로딩 시작...');
+      const reviewsMap = {};
+
+      for (const product of productList) {
+        try {
+          const result = await reviewService.getReviewsByMasterProduct(product.id);
+          if (result.success) {
+            const approvedReviews = result.data.filter(r => r.review_status === 'approved');
+            reviewsMap[product.id] = {
+              count: approvedReviews.length,
+              averageRating: approvedReviews.length > 0 
+                ? approvedReviews.reduce((sum, r) => sum + r.guide_rating, 0) / approvedReviews.length 
+                : 0
+            };
+            console.log(`✅ ${product.product_name}: ${approvedReviews.length}개 후기`);
+          }
+        } catch (error) {
+          console.warn(`⚠️ ${product.product_name} 후기 로딩 실패:`, error);
+          reviewsMap[product.id] = { count: 0, averageRating: 0 };
+        }
+      }
+
+      setReviewsData(reviewsMap);
+      console.log('✅ 전체 후기 데이터 로딩 완료:', reviewsMap);
+    } catch (error) {
+      console.error('❌ 후기 데이터 로딩 오류:', error);
+    }
+  };
+
   // 데이터 로딩
   const loadProducts = async () => {
     try {
@@ -234,6 +313,8 @@ const Main = () => {
           console.error('상품 로딩 실패:', result.error);
         } else {
           setProducts(result.data || []);
+          // 🆕 상품 로딩 후 후기 데이터도 로딩
+          await loadAllReviews(result.data || []);
         }
       } else {
         // DB 연결 실패 시 더미 데이터
@@ -288,90 +369,87 @@ const Main = () => {
           }
         ];
         setProducts(dummyProducts);
+
+        // 🆕 더미 후기 데이터
+        const dummyReviews = {
+          '1': { count: 15, averageRating: 4.8 },
+          '2': { count: 8, averageRating: 4.2 },
+          '3': { count: 22, averageRating: 4.6 }
+        };
+        setReviewsData(dummyReviews);
       }
-    } catch (err) {
-      console.error('데이터 로딩 중 오류:', err);
+    } catch (error) {
+      console.error('데이터 로딩 실패:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // 필터링 로직
+  // 상품 필터링
   useEffect(() => {
     let filtered = [...products];
 
-    // 검색어 필터
     if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(product =>
-        product.product_name.toLowerCase().includes(searchTerm) ||
-        product.destination_city.toLowerCase().includes(searchTerm) ||
-        product.destination_country.toLowerCase().includes(searchTerm)
+      filtered = filtered.filter(p => 
+        p.product_name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        p.destination_country.toLowerCase().includes(filters.search.toLowerCase()) ||
+        p.destination_city.toLowerCase().includes(filters.search.toLowerCase())
       );
     }
 
-    // 국가 필터
     if (filters.country) {
-      filtered = filtered.filter(product => product.destination_country === filters.country);
+      filtered = filtered.filter(p => p.destination_country === filters.country);
     }
 
-    // 기간 필터
     if (filters.duration) {
-      filtered = filtered.filter(product => {
-        const days = product.duration_days;
+      filtered = filtered.filter(p => {
+        const days = p.duration_days;
         switch (filters.duration) {
-          case '2-3': return days >= 2 && days <= 3;
-          case '4-5': return days >= 4 && days <= 5;
-          case '6-7': return days >= 6 && days <= 7;
-          case '8+': return days >= 8;
+          case '1-3': return days >= 1 && days <= 3;
+          case '4-6': return days >= 4 && days <= 6;
+          case '7+': return days >= 7;
           default: return true;
         }
       });
     }
 
-    // 특별 옵션 필터
     if (filters.special) {
-      switch (filters.special) {
-        case 'star_guide':
-          filtered = filtered.filter(product => product.is_star_guide_product);
-          break;
-        case 'upselling':
-          filtered = filtered.filter(product => product.upselling_enabled);
-          break;
-      }
+      filtered = filtered.filter(p => {
+        switch (filters.special) {
+          case 'star_guide': return p.is_star_guide_product;
+          case 'upselling': return p.upselling_enabled;
+          default: return true;
+        }
+      });
     }
 
     setFilteredProducts(filtered);
   }, [products, filters]);
 
-  // 초기 데이터 로딩
   useEffect(() => {
     loadProducts();
   }, []);
 
-  // 상품 클릭 핸들러 - 행사 목록 페이지로 이동
+  // 상품 클릭 핸들러
   const handleProductClick = (product) => {
-    console.log('상품 선택:', product);
     setSelectedProduct(product);
     setCurrentView('events');
   };
 
-  // 뒤로가기 핸들러
+  // 상품 목록으로 돌아가기
   const handleBackToProducts = () => {
     setCurrentView('products');
     setSelectedProduct(null);
   };
 
-  // 행사 선택 핸들러 (추후 예약 페이지로 이동)
+  // 이벤트 선택 핸들러 (필요시 구현)
   const handleEventSelect = (event) => {
-    console.log('행사 선택:', event);
-    // TODO: 예약 페이지 구현
-    alert(`"${event.event_code}" 일정 예약 페이지로 이동합니다.`);
+    console.log('이벤트 선택:', event);
   };
 
   if (loading) return <LoadingSpinner />;
 
-  // 🆕 조건부 렌더링 - 현재 뷰에 따라 다른 컴포넌트 표시
+  // EventList 보기
   if (currentView === 'events' && selectedProduct) {
     return (
       <EventList
@@ -419,6 +497,7 @@ const Main = () => {
                 key={product.id}
                 product={product}
                 onProductClick={handleProductClick}
+                reviewStats={reviewsData[product.id]} // 🆕 후기 데이터 전달
               />
             ))}
           </div>

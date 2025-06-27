@@ -5,10 +5,209 @@ import guideSupabaseApi from './guideSupabaseApi.js';
 // 후기 관리 서비스
 const reviewService = {
   
-  // 모든 후기 조회 (관계 테이블 포함)
+  // 🔧 간단한 테스트 함수 (디버깅용)
+  async testBasicQuery() {
+    try {
+      console.log('🔍 기본 쿼리 테스트 시작...');
+      
+      const { data, error } = await supabase
+        .from('guide_ratings')
+        .select('*')
+        .limit(5);
+
+      console.log('🔍 기본 쿼리 결과:', { data, error });
+      
+      if (error) {
+        throw new Error(`기본 쿼리 실패: ${error.message}`);
+      }
+
+      return {
+        success: true,
+        data: data || [],
+        message: '기본 쿼리 성공'
+      };
+    } catch (error) {
+      console.error('❌ 기본 쿼리 테스트 실패:', error);
+      return {
+        success: false,
+        error: error.message,
+        data: []
+      };
+    }
+  },
+
+  // 🔧 단계별 조인 테스트
+  async testJoinQueries() {
+    try {
+      console.log('🔍 JOIN 쿼리 테스트 시작...');
+
+      // 1단계: 가이드 조인만
+      console.log('1단계: 가이드 조인 테스트');
+      const step1 = await supabase
+        .from('guide_ratings')
+        .select(`
+          *,
+          guides(*)
+        `)
+        .limit(1);
+      
+      console.log('1단계 결과:', step1);
+
+      // 2단계: 이벤트 조인만
+      console.log('2단계: 이벤트 조인 테스트');
+      const step2 = await supabase
+        .from('guide_ratings')
+        .select(`
+          *,
+          events(*)
+        `)
+        .limit(1);
+      
+      console.log('2단계 결과:', step2);
+
+      // 3단계: 마스터 상품까지
+      console.log('3단계: 마스터 상품까지 조인 테스트');
+      const step3 = await supabase
+        .from('guide_ratings')
+        .select(`
+          *,
+          events(
+            *,
+            master_products(*)
+          )
+        `)
+        .limit(1);
+      
+      console.log('3단계 결과:', step3);
+
+      return {
+        success: true,
+        data: { step1, step2, step3 },
+        message: 'JOIN 테스트 완료'
+      };
+    } catch (error) {
+      console.error('❌ JOIN 테스트 실패:', error);
+      return {
+        success: false,
+        error: error.message,
+        data: null
+      };
+    }
+  },
+
+  // 🆕 수정된 getAllReviews (단순화 버전)
   async getAllReviews(options = {}) {
     try {
       const { status, membershipType, limit = 100, offset = 0 } = options;
+
+      console.log('🔍 getAllReviews 호출:', { status, membershipType, limit, offset });
+
+      // 단계 1: 기본 쿼리 먼저 시도
+      let query = supabase
+        .from('guide_ratings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // 필터 적용
+      if (status) {
+        query = query.eq('review_status', status);
+      }
+
+      if (membershipType) {
+        query = query.eq('membership_type', membershipType);
+      }
+
+      // 범위 설정
+      query = query.range(offset, offset + limit - 1);
+
+      const { data: basicData, error: basicError } = await query;
+
+      console.log('🔍 기본 쿼리 결과:', { 
+        dataCount: basicData?.length, 
+        error: basicError?.message 
+      });
+
+      if (basicError) {
+        throw new Error(`기본 후기 조회 실패: ${basicError.message}`);
+      }
+
+      // 단계 2: 관계 데이터 개별적으로 가져오기
+      const enrichedData = [];
+
+      for (const review of basicData || []) {
+        try {
+          const enrichedReview = { ...review };
+
+          // 가이드 정보 가져오기
+          if (review.guide_id) {
+            const { data: guideData, error: guideError } = await supabase
+              .from('guides')
+              .select('id, name_ko, is_star_guide, average_rating, total_reviews')
+              .eq('id', review.guide_id)
+              .single();
+
+            if (!guideError && guideData) {
+              enrichedReview.guide = guideData;
+            }
+          }
+
+          // 이벤트 정보 가져오기
+          if (review.event_id) {
+            const { data: eventData, error: eventError } = await supabase
+              .from('events')
+              .select('id, event_code, departure_date, arrival_date, master_product_id')
+              .eq('id', review.event_id)
+              .single();
+
+            if (!eventError && eventData) {
+              enrichedReview.event = eventData;
+
+              // 마스터 상품 정보 가져오기
+              if (eventData.master_product_id) {
+                const { data: productData, error: productError } = await supabase
+                  .from('master_products')
+                  .select('id, product_name, destination_country, destination_city')
+                  .eq('id', eventData.master_product_id)
+                  .single();
+
+                if (!productError && productData) {
+                  enrichedReview.event.master_products = productData;
+                }
+              }
+            }
+          }
+
+          enrichedData.push(enrichedReview);
+        } catch (itemError) {
+          console.warn('개별 후기 데이터 enrichment 실패:', itemError);
+          // 기본 데이터라도 포함
+          enrichedData.push(review);
+        }
+      }
+
+      console.log('✅ getAllReviews 성공:', enrichedData.length, '건');
+
+      return {
+        success: true,
+        data: enrichedData,
+        count: enrichedData.length
+      };
+    } catch (error) {
+      console.error('❌ getAllReviews 오류:', error);
+      return {
+        success: false,
+        error: error.message,
+        data: []
+      };
+    }
+  },
+
+  // 🆕 원래 방식도 시도해보기 (Alternative)
+  async getAllReviewsOriginal(options = {}) {
+    try {
+      const { status, membershipType, limit = 100, offset = 0 } = options;
+
+      console.log('🔍 Original 방식 시도...');
 
       let query = supabase
         .from('guide_ratings')
@@ -50,6 +249,12 @@ const reviewService = {
 
       const { data, error } = await query;
 
+      console.log('🔍 Original 방식 결과:', { 
+        dataCount: data?.length, 
+        error: error?.message,
+        sample: data?.[0]
+      });
+
       if (error) {
         throw new Error(`후기 조회 실패: ${error.message}`);
       }
@@ -60,7 +265,7 @@ const reviewService = {
         count: data?.length || 0
       };
     } catch (error) {
-      console.error('getAllReviews 오류:', error);
+      console.error('getAllReviewsOriginal 오류:', error);
       return {
         success: false,
         error: error.message,
@@ -126,73 +331,37 @@ const reviewService = {
         throw new Error('가이드 ID, 행사 ID, 작성자는 필수 입력 항목입니다.');
       }
 
-      // 종합 평점 계산 (정수로 반올림)
-      const categories = reviewData.categories || {};
-      const categoryRatings = Object.values(categories).filter(rating => rating > 0);
-      const overallRating = categoryRatings.length > 0 
-        ? categoryRatings.reduce((sum, rating) => sum + rating, 0) / categoryRatings.length 
-        : 0;
-
-      // DB에 저장할 데이터 준비
+      // 데이터 정리 및 형식 맞추기
       const insertData = {
         guide_id: reviewData.guide_id,
         event_id: reviewData.event_id,
-        author_name: reviewData.author,
-        membership_type: reviewData.membershipType || 'non-member',
-        
-        // 가이드 평가 (정수로 변환)
-        guide_rating: Math.round(overallRating), // 🆕 정수로 반올림
+        author_name: reviewData.author, // author → author_name
+        membership_type: reviewData.membershipType,
+        guide_rating: reviewData.overallRating,
         guide_review: reviewData.comment,
-        
-        // 세부 평가 (모두 정수로 변환)
-        professionalism_rating: Math.round(categories.professionalism || 0),
-        communication_rating: Math.round(categories.communication || 0),
-        knowledge_rating: Math.round(categories.knowledge || 0),
-        kindness_rating: Math.round(categories.kindness || 0),
-        punctuality_rating: Math.round(categories.punctuality || 0),
-        
-        // 추천 여부
-        would_recommend: overallRating >= 4.0,
-        
-        // 승인 상태 (비회원은 pending, 회원은 auto-approved로 설정 가능)
+        detailed_ratings: reviewData.detailedRatings || null,
         review_status: reviewData.membershipType === 'member' ? 'approved' : 'pending',
-        
-        // 메타데이터
         submitted_at: new Date().toISOString(),
-        reviewed_at: reviewData.membershipType === 'member' ? new Date().toISOString() : null,
-        reviewed_by: reviewData.membershipType === 'member' ? 'auto-system' : null,
-        
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
+      console.log('🆕 후기 작성 데이터:', insertData);
+
       const { data, error } = await supabase
         .from('guide_ratings')
         .insert([insertData])
-        .select(`
-          *,
-          guide:guides(
-            id,
-            name_ko,
-            is_star_guide
-          ),
-          event:events(
-            id,
-            event_code,
-            master_products(
-              id,
-              product_name
-            )
-          )
-        `)
+        .select()
         .single();
 
       if (error) {
         throw new Error(`후기 작성 실패: ${error.message}`);
       }
 
-      // 회원 후기의 경우 즉시 가이드 평점에 반영
-      if (reviewData.membershipType === 'member') {
+      console.log('✅ 후기 작성 성공:', data);
+
+      // 회원 후기인 경우 가이드 평점 즉시 업데이트
+      if (insertData.review_status === 'approved') {
         await this.updateGuideRating(reviewData.guide_id);
       }
 
@@ -318,60 +487,42 @@ const reviewService = {
 
       const totalReviews = approvedReviews?.length || 0;
       const averageRating = totalReviews > 0 
-        ? approvedReviews.reduce((sum, r) => sum + (r.guide_rating || 0), 0) / totalReviews 
+        ? approvedReviews.reduce((sum, review) => sum + review.guide_rating, 0) / totalReviews
         : 0;
 
-      // 가이드 통계 업데이트
-      const updateData = {
-        total_reviews: totalReviews,
-        average_rating: Math.round(averageRating * 10) / 10, // 🆕 소수점 첫째 자리까지만
-        updated_at: new Date().toISOString()
-      };
+      // 스타 가이드 기준 (평점 4.5 이상, 후기 5개 이상)
+      const shouldBeStarGuide = averageRating >= 4.5 && totalReviews >= 5;
 
-      // 스타가이드 자동 승격/해제 판단 (3개 이상 후기 + 4.0점 이상)
-      const shouldBeStarGuide = averageRating >= 4.0 && totalReviews >= 3;
-      
-      // 현재 가이드 정보 조회
-      const { data: currentGuide, error: guideError } = await supabase
+      // 가이드 테이블 업데이트
+      const { data, error } = await supabase
         .from('guides')
-        .select('is_star_guide, manual_promotion')
+        .update({
+          average_rating: Math.round(averageRating * 10) / 10, // 소수점 첫째 자리까지만
+          total_reviews: totalReviews,
+          is_star_guide: shouldBeStarGuide,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', guideId)
+        .select()
         .single();
 
-      if (guideError) {
-        console.warn('가이드 정보 조회 실패:', guideError.message);
-      } else {
-        // 수동 승격이 아닌 경우에만 자동 업데이트
-        if (!currentGuide.manual_promotion) {
-          if (shouldBeStarGuide && !currentGuide.is_star_guide) {
-            // 자동 승격
-            updateData.is_star_guide = true;
-            updateData.star_guide_since = new Date().toISOString();
-            updateData.star_guide_tier = 'bronze';
-          } else if (!shouldBeStarGuide && currentGuide.is_star_guide) {
-            // 자동 해제
-            updateData.is_star_guide = false;
-            updateData.star_guide_since = null;
-            updateData.star_guide_tier = null;
-          }
-        }
+      if (error) {
+        throw new Error(`가이드 평점 업데이트 실패: ${error.message}`);
       }
 
-      const { error: updateError } = await supabase
-        .from('guides')
-        .update(updateData)
-        .eq('id', guideId);
-
-      if (updateError) {
-        console.warn('가이드 통계 업데이트 실패:', updateError.message);
-        return { success: false, error: updateError.message };
-      }
+      console.log('✅ 가이드 평점 업데이트 성공:', {
+        guideId,
+        totalReviews,
+        averageRating: Math.round(averageRating * 10) / 10,
+        isStarGuide: shouldBeStarGuide
+      });
 
       return {
         success: true,
         data: {
+          guideId,
           totalReviews,
-          averageRating: Math.round(averageRating * 10) / 10, // 🆕 소수점 첫째 자리까지만
+          averageRating: Math.round(averageRating * 10) / 10,
           isStarGuide: shouldBeStarGuide
         }
       };
@@ -384,9 +535,123 @@ const reviewService = {
     }
   },
 
-  // 마스터 상품별 후기 조회
+  // 🆕 통계 조회 (수정됨)
+  async getReviewStats() {
+    try {
+      console.log('🔍 getReviewStats 호출...');
+
+      // 전체 후기 수
+      const { count: totalCount, error: totalError } = await supabase
+        .from('guide_ratings')
+        .select('*', { count: 'exact', head: true });
+
+      if (totalError) {
+        console.error('전체 후기 수 조회 실패:', totalError);
+        throw new Error(`전체 후기 수 조회 실패: ${totalError.message}`);
+      }
+
+      // 상태별 후기 수
+      const { count: pendingCount } = await supabase
+        .from('guide_ratings')
+        .select('*', { count: 'exact', head: true })
+        .eq('review_status', 'pending');
+
+      const { count: approvedCount } = await supabase
+        .from('guide_ratings')
+        .select('*', { count: 'exact', head: true })
+        .eq('review_status', 'approved');
+
+      const { count: rejectedCount } = await supabase
+        .from('guide_ratings')
+        .select('*', { count: 'exact', head: true })
+        .eq('review_status', 'rejected');
+
+      // 회원/비회원별 후기 수
+      const { count: memberCount } = await supabase
+        .from('guide_ratings')
+        .select('*', { count: 'exact', head: true })
+        .eq('membership_type', 'member');
+
+      const { count: nonMemberCount } = await supabase
+        .from('guide_ratings')
+        .select('*', { count: 'exact', head: true })
+        .eq('membership_type', 'non_member');
+
+      // 평균 평점 계산 (승인된 후기만)
+      const { data: ratingData, error: ratingError } = await supabase
+        .from('guide_ratings')
+        .select('guide_rating')
+        .eq('review_status', 'approved');
+
+      let averageRating = 0;
+      if (!ratingError && ratingData && ratingData.length > 0) {
+        const sum = ratingData.reduce((total, review) => total + (review.guide_rating || 0), 0);
+        averageRating = sum / ratingData.length;
+      }
+
+      const stats = {
+        total: totalCount || 0,
+        pending: pendingCount || 0,
+        approved: approvedCount || 0,
+        rejected: rejectedCount || 0,
+        members: memberCount || 0,
+        nonMembers: nonMemberCount || 0,
+        averageRating: Math.round(averageRating * 10) / 10
+      };
+
+      console.log('✅ getReviewStats 성공:', stats);
+
+      return {
+        success: true,
+        data: stats
+      };
+    } catch (error) {
+      console.error('getReviewStats 오류:', error);
+      return {
+        success: false,
+        error: error.message,
+        data: {
+          total: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          members: 0,
+          nonMembers: 0,
+          averageRating: 0
+        }
+      };
+    }
+  },
+
+  // 🆕 마스터 상품별 후기 조회 (EventList에서 사용)
   async getReviewsByMasterProduct(masterProductId) {
     try {
+      console.log('🔍 마스터 상품별 후기 조회:', masterProductId);
+
+      // 단계 1: 먼저 해당 마스터 상품의 모든 이벤트 ID 조회
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('id')
+        .eq('master_product_id', masterProductId);
+
+      if (eventsError) {
+        console.error('이벤트 조회 실패:', eventsError);
+        throw new Error(`이벤트 조회 실패: ${eventsError.message}`);
+      }
+
+      if (!events || events.length === 0) {
+        console.log('⚠️ 해당 마스터 상품에 연결된 이벤트가 없습니다');
+        return {
+          success: true,
+          data: [],
+          count: 0
+        };
+      }
+
+      const eventIds = events.map(e => e.id);
+      console.log('📋 찾은 이벤트 IDs:', eventIds);
+
+      // 단계 2: 해당 이벤트들의 후기 조회
       const { data, error } = await supabase
         .from('guide_ratings')
         .select(`
@@ -395,24 +660,17 @@ const reviewService = {
             id,
             name_ko,
             is_star_guide
-          ),
-          event:events!inner(
-            id,
-            event_code,
-            master_product_id,
-            master_products!inner(
-              id,
-              product_name
-            )
           )
         `)
-        .eq('event.master_products.id', masterProductId)
-        .eq('review_status', 'approved')
+        .in('event_id', eventIds)
         .order('created_at', { ascending: false });
 
       if (error) {
-        throw new Error(`마스터 상품 후기 조회 실패: ${error.message}`);
+        console.error('후기 조회 실패:', error);
+        throw new Error(`후기 조회 실패: ${error.message}`);
       }
+
+      console.log('✅ 마스터 상품별 후기 조회 성공:', data?.length || 0, '건');
 
       return {
         success: true,
@@ -439,12 +697,7 @@ const reviewService = {
           event:events(
             id,
             event_code,
-            master_products(
-              id,
-              product_name,
-              destination_country,
-              destination_city
-            )
+            master_product_id
           )
         `)
         .eq('guide_id', guideId)
@@ -471,55 +724,6 @@ const reviewService = {
         success: false,
         error: error.message,
         data: []
-      };
-    }
-  },
-
-  // 후기 통계 조회
-  async getReviewStats() {
-    try {
-      const { data: allReviews, error } = await supabase
-        .from('guide_ratings')
-        .select('review_status, guide_rating, membership_type');
-
-      if (error) {
-        throw new Error(`후기 통계 조회 실패: ${error.message}`);
-      }
-
-      const stats = {
-        total: allReviews?.length || 0,
-        pending: allReviews?.filter(r => r.review_status === 'pending').length || 0,
-        approved: allReviews?.filter(r => r.review_status === 'approved').length || 0,
-        rejected: allReviews?.filter(r => r.review_status === 'rejected').length || 0,
-        members: allReviews?.filter(r => r.membership_type === 'member').length || 0,
-        nonMembers: allReviews?.filter(r => r.membership_type === 'non-member').length || 0,
-        averageRating: 0
-      };
-
-      // 승인된 후기의 평균 평점 계산
-      const approvedReviews = allReviews?.filter(r => r.review_status === 'approved') || [];
-      if (approvedReviews.length > 0) {
-        stats.averageRating = approvedReviews.reduce((sum, r) => sum + (r.guide_rating || 0), 0) / approvedReviews.length;
-      }
-
-      return {
-        success: true,
-        data: stats
-      };
-    } catch (error) {
-      console.error('getReviewStats 오류:', error);
-      return {
-        success: false,
-        error: error.message,
-        data: {
-          total: 0,
-          pending: 0,
-          approved: 0,
-          rejected: 0,
-          members: 0,
-          nonMembers: 0,
-          averageRating: 0
-        }
       };
     }
   },

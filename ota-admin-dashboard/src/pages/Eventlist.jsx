@@ -3,15 +3,104 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Calendar, MapPin, Users, DollarSign, Star, 
   Clock, Plane, UserCheck, TrendingUp, AlertCircle, 
-  CheckCircle, XCircle, Heart
+  CheckCircle, XCircle, Heart, MessageSquare, Award, User
 } from 'lucide-react';
 
 // API 서비스 import
 import eventService from '../services/eventService';
+import reviewService from '../services/reviewService'; // 🆕 후기 서비스 추가
 import { testConnection } from '../lib/supabase';
 
 // 🆕 예약 플로우 컴포넌트 import
 import SimpleBookingFlow from '../components/SimpleBookingFlow.jsx';
+
+// 🆕 후기 미리보기 컴포넌트
+const ReviewPreview = ({ reviews, productName }) => {
+  if (!reviews || reviews.length === 0) {
+    return (
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2 text-gray-500">
+          <MessageSquare className="w-4 h-4" />
+          <span className="text-sm">아직 등록된 후기가 없습니다</span>
+        </div>
+      </div>
+    );
+  }
+
+  const approvedReviews = reviews.filter(r => r.review_status === 'approved');
+  const averageRating = approvedReviews.length > 0 
+    ? approvedReviews.reduce((sum, r) => sum + r.guide_rating, 0) / approvedReviews.length 
+    : 0;
+
+  return (
+    <div className="mt-4 space-y-3">
+      {/* 후기 요약 */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+        <div className="flex items-center gap-3">
+          <MessageSquare className="w-5 h-5 text-blue-600" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900">{approvedReviews.length}개 후기</span>
+              {averageRating > 0 && (
+                <>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="font-bold text-gray-900">{averageRating.toFixed(1)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="text-sm text-gray-600">{productName} 여행 후기</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 최신 후기 2-3개 미리보기 */}
+      <div className="space-y-3">
+        {approvedReviews.slice(0, 3).map((review) => (
+          <div key={review.id} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-900">{review.author_name}</span>
+                <span className={`px-2 py-1 rounded text-xs ${
+                  review.membership_type === 'member' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {review.membership_type === 'member' ? '회원' : '비회원'}
+                </span>
+                {review.guide?.is_star_guide && (
+                  <Award className="w-4 h-4 text-yellow-500" title="스타가이드" />
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                <span className="text-sm font-medium">{review.guide_rating.toFixed(1)}</span>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-700 mb-2">
+              {review.guide_review}
+            </p>
+            
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>가이드: {review.guide?.name_ko}</span>
+              <span>{new Date(review.created_at).toLocaleDateString('ko-KR')}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 더보기 버튼 (필요시) */}
+      {approvedReviews.length > 3 && (
+        <div className="text-center">
+          <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+            후기 {approvedReviews.length - 3}개 더보기 →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // 로딩 컴포넌트
 const LoadingSpinner = () => (
@@ -47,8 +136,8 @@ const StatusBadge = ({ status, currentBookings, maxCapacity }) => {
   );
 };
 
-// 행사 카드 컴포넌트
-const EventCard = ({ event, onEventClick }) => {
+// 🆕 수정된 행사 카드 컴포넌트 (후기 정보 포함)
+const EventCard = ({ event, onEventClick, reviews = [] }) => {
   const [isFavorited, setIsFavorited] = useState(false);
   
   // 예약 가능 여부 계산
@@ -60,6 +149,19 @@ const EventCard = ({ event, onEventClick }) => {
   const finalPrice = event.upselling_enabled && event.upselling_percentage 
     ? event.event_price * (1 + event.upselling_percentage / 100)
     : event.event_price;
+
+  // 🆕 이 행사의 후기들 (승인된 것만)
+  const eventReviews = reviews.filter(r => 
+    r.event_id === event.id && r.review_status === 'approved'
+  );
+
+  // 🆕 후기 통계
+  const reviewStats = {
+    count: eventReviews.length,
+    average: eventReviews.length > 0 
+      ? eventReviews.reduce((sum, r) => sum + r.guide_rating, 0) / eventReviews.length 
+      : 0
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200">
@@ -78,17 +180,28 @@ const EventCard = ({ event, onEventClick }) => {
             </div>
           </div>
           
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFavorited(!isFavorited);
-            }}
-            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-          >
-            <Heart 
-              className={`w-5 h-5 ${isFavorited ? 'text-red-300 fill-current' : 'text-white'}`}
-            />
-          </button>
+          {/* 찜하기 + 후기 아이콘 */}
+          <div className="flex gap-2">
+            {/* 🆕 후기 아이콘 및 개수 */}
+            {reviewStats.count > 0 && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-white/20 rounded-full">
+                <MessageSquare className="w-4 h-4 text-white" />
+                <span className="text-xs font-medium text-white">{reviewStats.count}</span>
+              </div>
+            )}
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFavorited(!isFavorited);
+              }}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <Heart 
+                className={`w-5 h-5 ${isFavorited ? 'text-red-300 fill-current' : 'text-white'}`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-between items-end">
@@ -109,6 +222,19 @@ const EventCard = ({ event, onEventClick }) => {
 
       {/* 본문 */}
       <div className="p-6 space-y-4">
+        {/* 🆕 후기 요약 정보 */}
+        {reviewStats.count > 0 && (
+          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-1">
+              <Star className="w-5 h-5 text-yellow-400 fill-current" />
+              <span className="font-bold text-gray-900">{reviewStats.average.toFixed(1)}</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              {reviewStats.count}개 후기
+            </div>
+          </div>
+        )}
+
         {/* 항공편 정보 */}
         {(event.departure_airline || event.arrival_airline) && (
           <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -211,6 +337,37 @@ const EventCard = ({ event, onEventClick }) => {
           </div>
         )}
 
+        {/* 🆕 행사별 후기 미리보기 (최근 1-2개만) */}
+        {eventReviews.length > 0 && (
+          <div className="pt-4 border-t border-gray-200">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-900">이 일정 후기</span>
+              </div>
+              
+              {eventReviews.slice(0, 2).map((review) => (
+                <div key={review.id} className="p-3 bg-gray-50 rounded-lg text-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-900">{review.author_name}</span>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                      <span className="text-xs font-medium">{review.guide_rating}</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 text-xs leading-relaxed">{review.guide_review}</p>
+                </div>
+              ))}
+              
+              {eventReviews.length > 2 && (
+                <div className="text-center pt-2">
+                  <span className="text-xs text-blue-600 font-medium">후기 {eventReviews.length - 2}개 더보기</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 예약 버튼 */}
         <button
           onClick={() => onEventClick(event)}
@@ -237,6 +394,7 @@ const EventCard = ({ event, onEventClick }) => {
 // 메인 컴포넌트
 const EventList = ({ masterProduct, onBack, onEventSelect }) => {
   const [events, setEvents] = useState([]);
+  const [reviews, setReviews] = useState([]); // 🆕 후기 상태 추가
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [sortBy, setSortBy] = useState('departure_date'); // 정렬 기준
@@ -244,6 +402,31 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
   // 🆕 현재 뷰에 따라 다른 컴포넌트 표시
   const [viewState, setViewState] = useState('list'); // 'list' | 'review'
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // 🆕 후기 데이터 로딩
+  const loadReviews = async () => {
+    try {
+      console.log('🔍 후기 데이터 로딩 시작...', masterProduct?.id);
+      
+      if (masterProduct?.id) {
+        const result = await reviewService.getReviewsByMasterProduct(masterProduct.id);
+        if (result.success) {
+          setReviews(result.data || []);
+          console.log('✅ 후기 데이터 로딩 성공:', result.data.length, '건');
+          console.log('후기 샘플:', result.data.slice(0, 2));
+        } else {
+          console.warn('⚠️ 후기 데이터 로딩 실패:', result.error);
+          setReviews([]);
+        }
+      } else {
+        console.warn('⚠️ masterProduct.id가 없습니다');
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error('❌ 후기 데이터 로딩 오류:', error);
+      setReviews([]);
+    }
+  };
 
   // 이벤트 데이터 로딩
   const loadEvents = async () => {
@@ -254,17 +437,23 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
       setIsConnected(connected);
       
       if (connected && masterProduct?.id) {
-        // 🆕 특정 마스터 상품의 행사들만 조회하는 새로운 메서드 사용
+        // 특정 마스터 상품의 행사들만 조회
         const result = await eventService.getByMasterProduct(masterProduct.id, {
           future_only: false // 과거 일정도 포함
         });
         
         if (result.error) {
-          console.error('행사 로딩 실패:', result.error);
+          console.error('❌ 행사 로딩 실패:', result.error);
         } else {
           setEvents(result.data || []);
+          console.log('✅ 행사 데이터 로딩 성공:', result.data.length, '건');
         }
+
+        // 🆕 후기 데이터도 함께 로딩
+        await loadReviews();
       } else {
+        console.log('🔄 DB 연결 실패 - 더미 데이터 사용');
+        
         // DB 연결 실패 시 더미 데이터
         const dummyEvents = [
           {
@@ -309,33 +498,49 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
               is_star_guide: false,
               average_rating: 4.5
             }
-          },
-          {
-            id: '3',
-            event_code: `${masterProduct?.product_code || 'DEMO'}-250820`,
-            departure_date: '2025-08-20',
-            arrival_date: '2025-08-23',
-            departure_airline: 'LJ201',
-            arrival_airline: 'LJ202',
-            event_price: masterProduct?.base_price || 890000,
-            max_capacity: 15,
-            current_bookings: 15,
-            status: 'full',
-            upselling_enabled: true,
-            upselling_percentage: 15,
-            master_products: masterProduct,
-            guides: {
-              id: '3',
-              name_ko: '이가이드',
-              is_star_guide: true,
-              average_rating: 4.9
-            }
           }
         ];
         setEvents(dummyEvents);
+        
+        // 더미 후기 데이터도 추가
+        const dummyReviews = [
+          {
+            id: 'review1',
+            event_id: '1',
+            guide_id: '1',
+            author_name: '홍길동',
+            membership_type: 'member',
+            guide_rating: 5,
+            guide_review: '정말 멋진 여행이었습니다! 김가이드님이 너무 친절하시고 현지 문화에 대해 자세히 설명해주셔서 많이 배웠어요.',
+            review_status: 'approved',
+            created_at: '2025-06-20T10:00:00Z',
+            guide: {
+              id: '1',
+              name_ko: '김가이드',
+              is_star_guide: true
+            }
+          },
+          {
+            id: 'review2',
+            event_id: '1',
+            guide_id: '1',
+            author_name: '김철수',
+            membership_type: 'non_member',
+            guide_rating: 4.5,
+            guide_review: '가이드님이 전문적이고 시간도 잘 지켜주셔서 좋았습니다. 다음에도 이용하고 싶어요.',
+            review_status: 'approved',
+            created_at: '2025-06-15T14:30:00Z',
+            guide: {
+              id: '1',
+              name_ko: '김가이드',
+              is_star_guide: true
+            }
+          }
+        ];
+        setReviews(dummyReviews);
       }
     } catch (err) {
-      console.error('데이터 로딩 중 오류:', err);
+      console.error('❌ 데이터 로딩 중 오류:', err);
     } finally {
       setLoading(false);
     }
@@ -364,46 +569,31 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
     loadEvents();
   }, [masterProduct]);
 
-  // 행사 선택 핸들러 - 바로 후기 작성으로 이동
+  // 이벤트 클릭 핸들러
   const handleEventClick = (event) => {
     console.log('🎯 행사 선택:', event);
-    console.log('📈 예약 현황 자동 +1 업데이트 (시뮬레이션)');
-    console.log('⚡ 예약 완료! 바로 후기 작성 페이지로 이동');
-    
-    // 예약 현황 업데이트 시뮬레이션
-    console.log('💾 업데이트 데이터:', {
-      eventId: event.id,
-      currentBookings: (event.current_bookings || 0) + 1,
-      maxCapacity: event.max_capacity,
-      bookingDate: new Date().toISOString()
-    });
-    
     setSelectedEvent(event);
-    setViewState('review'); // 🆕 바로 후기 작성으로 변경
+    setViewState('review');
   };
 
-  // 후기 작성에서 뒤로가기
-  const handleBackFromReview = () => {
+  // 후기 작성 완료 핸들러
+  const handleReviewComplete = () => {
     setViewState('list');
     setSelectedEvent(null);
+    // 후기 데이터 새로고침
+    loadReviews();
   };
 
   if (loading) return <LoadingSpinner />;
 
   // 🆕 후기 작성 화면 표시
   if (viewState === 'review' && selectedEvent) {
-    // SimpleBookingFlow에서 GuideReviewForm 부분만 사용
-    const GuideReviewForm = SimpleBookingFlow.GuideReviewForm || SimpleBookingFlow;
-    
     return (
-      <div>
-        {/* GuideReviewForm을 직접 렌더링하는 대신 SimpleBookingFlow를 review 단계로 시작 */}
-        <SimpleBookingFlow
-          event={selectedEvent}
-          onBack={handleBackFromReview}
-          initialStep="review" // 🆕 초기 단계를 후기 작성으로 설정
-        />
-      </div>
+      <SimpleBookingFlow
+        event={selectedEvent}
+        onBack={() => setViewState('list')}
+        onComplete={handleReviewComplete}
+      />
     );
   }
 
@@ -438,7 +628,7 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
 
           {/* 상품 정보 요약 */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">
                   ₩{masterProduct?.base_price?.toLocaleString()}
@@ -457,12 +647,29 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
                 </div>
                 <div className="text-sm text-gray-600">예약 가능</div>
               </div>
+              {/* 🆕 후기 통계 추가 */}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {reviews.filter(r => r.review_status === 'approved').length}개
+                </div>
+                <div className="text-sm text-gray-600">고객 후기</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* 🆕 전체 상품 후기 미리보기 (상단에 표시) */}
+        {reviews.length > 0 && (
+          <div className="mb-8">
+            <ReviewPreview 
+              reviews={reviews} 
+              productName={masterProduct?.product_name}
+            />
+          </div>
+        )}
+
         {/* 정렬 옵션 */}
         {events.length > 0 && (
           <div className="flex justify-between items-center mb-6">
@@ -489,6 +696,7 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
                 key={event.id}
                 event={event}
                 onEventClick={handleEventClick}
+                reviews={reviews} // 🆕 후기 데이터 전달
               />
             ))}
           </div>
@@ -508,7 +716,7 @@ const EventList = ({ masterProduct, onBack, onEventSelect }) => {
         {!isConnected && (
           <div className="mt-8 text-center">
             <span className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm">
-              ⚠️ 오프라인 모드 - 샘플 데이터가 표시됩니다
+              ⚠️ 오프라인 모드 - 샘플 데이터가 표시됩니다 (더미 후기 {reviews.length}개 포함)
             </span>
           </div>
         )}
